@@ -1,30 +1,33 @@
+# Emerald (PxStat Fork)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Mentioned in Awesome Official Statistics ](https://awesome.re/mentioned-badge.svg)](http://www.awesomeofficialstatistics.org)
+**Emerald** is a Proof of Concept (PoC) Open Data and Data Dissemination Tool, developed as a fork of PxStat to serve as a prototype. This is the second such prototype designed to explore data dissemination solutions for statistics.
 
-# PxStat
-PxStat is a **Data Dissemination Management System** for publishing Statistics in **Open Data** formats. It's especially designed for National Statistical Institutes and Statistical Organisations, developed by the [CSO](https://www.cso.ie) (Central Statistics Office, Ireland) with the support of the **PC-Axis** Reference Group and the collaboration of the **Open Source** community.
+Emerald is based on PxStat, a  Data Dissemination Management System developed by the Central Statistics Office, Ireland (CSO). This fork aims to evaluate the feasibility of deploying PxStat as an Open Data platform tailored to Scottish Government needs.
 
-The system is powered by a lightweight engine and provides a modern, responsive and efficient Web Interface and Web Services (API) for managing and disseminating statistics.
+## Features
 
-**End-Users** can run extensive meta-data searches , filter results, pivot, explore data by _"slicing and dicing"_, export results to different formats, plot interactive charts, visualise data over interactive geo-maps, share results and automate their processes by reading data via API queries. 
-The outputs follow also the **Open Data** recommendations by providing access to multiple data formats (JSON-Stat, PX, XLSX, CSV) and is ready to enable RDF and LOD (Linked Open Data) to reach _"5 Star Linked Open Data"_.
+Emerald retains all core functionalities of PxStat, including:
+- **Modern and responsive web interface** for exploring, filtering, and visualizing statistical data.
+- **Extensive metadata search** with options to pivot, slice, and dice datasets.
+- **Multiple export formats** including JSON-Stat, PX, XLSX, and CSV.
+- **Interactive visualizations** such as charts and geo-maps.
+- **API access** for automated data retrieval.
+- **Workflow management** for data publication, release tracking, and embargo policies.
 
-PxStat also empowers the **Data-Owners** to manage the publication of their data through a Workflow to identify & prevent issues before going Live, track and schedule Releases to implement Embargo policies, compare data and meta-data across Releases over time and monitor the consumption of data via analytical tools.
+## Objectives of the Emerald Prototype
 
-## [Wiki](https://github.com/CSOIreland/PxStat/wiki)
-The Wiki centrally hosts all the technical and business information about the system:
-* [Requirements](https://github.com/CSOIreland/PxStat/wiki/Requirements)
-* [Installation](https://github.com/CSOIreland/PxStat/wiki/Installation)
-* [Update](https://github.com/CSOIreland/PxStat/wiki/Update)
-* [Configuration](https://github.com/CSOIreland/PxStat/wiki/Configuration)
-* [API](https://github.com/CSOIreland/PxStat/wiki/API)
-* [Developer](https://github.com/CSOIreland/PxStat/wiki/Developer)
-* [End User Guide](https://github.com/CSOIreland/PxStat/wiki/End-User-Guide)
-* [Data Formats](https://github.com/CSOIreland/PxStat/wiki/Data-Formats)
-* [Demo](https://github.com/CSOIreland/PxStat/wiki/Demo)
-## [Questions](https://github.com/CSOIreland/PxStat/issues/new/choose)
-Please raise a new [Issue](https://github.com/CSOIreland/PxStat/issues/new/choose) in GitHub if you want to file a **Bug**, suggest an **Enhancement**, report a **Security Vulnerability** or submit a **General Query**.
+- Assess the adaptability of PxStat for Scottish Government data publication.
+- Test the system’s capabilities in handling open data requirements.
+- Evaluate potential enhancements and custom functionality in line with strategy.
+- Explore integration with existing Scottish Government data tools
+- Incorporate the Scottish Government Design System
 
-***
-<img src="https://user-images.githubusercontent.com/5030226/60980383-47ccbf80-a32c-11e9-8572-3c234abcd9fb.png" Title="CSO" alt="CSO" width="24"> [Central Statistics Office, Ireland](https://www.cso.ie/)   
+## Wiki & Documentation
+
+For installation, configuration, API details, and user guides, refer to the PxStat documentation.
+
+## Feedback & Contributions
+
+This is an experimental prototype. If you have feedback or wish to contribute, please raise a GitHub Issue.
+
+Emerald is an independent fork for testing only and does not represent an official deployment of PxStat by the Scottish Government!!!
