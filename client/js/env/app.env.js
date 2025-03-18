@@ -2,7 +2,7 @@
 Application - Environment
 *******************************************************************************/
 //URL API
-const C_APP_URL_API = "https://web-service-domain.ext/";
+const C_APP_URL_API = "http://localhost:4000/";
 
 // URLs Widget
 const C_APP_URL_PXWIDGET_ISOGRAM = "https://cdn.jsdelivr.net/gh/CSOIreland/PxWidget@2.9.7/js/isogram.min.js";
