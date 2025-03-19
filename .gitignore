@@ -60,3 +60,4 @@
 /client/js/env/app.env.live.js
 /client/js/env/app.env.test.js
 /client/js/env/app.env.demo.js
+/node_modules
