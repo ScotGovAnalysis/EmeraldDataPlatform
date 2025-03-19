@@ -1,4 +1,4 @@
-# Cobalt Open Data Portal (Alpha)
+# Emerald Open Data Portal (Alpha)
 
 A React-based frontend for PxStat, designed to provide a user-friendly interface for exploring and managing open data and statistics. This project is part of an alpha testing phase to evaluate its effectiveness among a range of open data portal tools.
 
