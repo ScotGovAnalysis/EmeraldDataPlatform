@@ -1,70 +1,119 @@
-# Getting Started with Create React App
+# Emerald Open Data Portal (Alpha)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based frontend for PxStat, designed to provide a user-friendly interface for exploring and managing open data and statistics. This project is part of an alpha testing phase to evaluate its effectiveness among a range of open data portal tools.
 
-## Available Scripts
 
-In the project directory, you can run:
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Table of Contents
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. [Overview](#overview)
+2. [Features](#features)
+3. [Getting Started](#getting-started)
+   - [Prerequisites](#prerequisites)
+   - [Installation](#installation)
+   - [Configuration](#configuration)
+4. [Usage](#usage)
+5. [API Integration](#api-integration)
+6. [Contributing](#contributing)
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Overview
 
-### `npm run build`
+The Emerald Open Data Portal is a frontend built with React that interacts with a PxStat backend via its JSON-RPC.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+This project is currently in alpha testing and is being evaluated alongside other open data portal tools. 
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Features
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **Search and Filter**: Easily search and filter datasets by keywords, organisations, and resource types.
+- **Dataset Details**: View detailed information about datasets, including metadata, resources, and download links.
+- **PxStat API Integration**: Seamlessly communicates with a PxStat instance using its JSON-RPC APIs.
+- **CSV Exploration**: Allows users to visualise and slice data.
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Getting Started
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Prerequisites
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Before you begin, ensure you have the following installed:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [npm](https://www.npmjs.com/) (v8 or higher)
+- A running instance of [PxStat] (for backend API)
 
-## Learn More
+## Installation
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Clone the repository:
+```bash
+   git clone https://github.com/ScotGovAnalysis/EmeraldDataPlatform.git
+   cd CobaltDataPlatform
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. Install dependencies:
+```bash
+    npm install
+```
 
-### Code Splitting
+### Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Before running the project, configure the environment:
 
-### Analyzing the Bundle Size
+1.  Copy the appropriate environment template:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+For development:
+```bash
+    cp .env.development.template .env.development
+```
 
-### Making a Progressive Web App
+For release:
+```bash
+   cp .env.release.template .env.release
+```
+2.  Populate the .env.development or .env.release file with the necessary configuration values.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Usage
+### Running in Development
 
-### Advanced Configuration
+To start the development server:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+   npm start
+```
+Open your browser and navigate to http://localhost:3000.
 
-### Deployment
+### Building for Production
+To create a development build:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+   npm run build:dev
+```
+To create a release build:
 
-### `npm run build` fails to minify
+```bash
+   npm run build:release
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+To serve the built app locally:
+
+```bash
+   npx serve -s build --single -l 3000
+```
+
+## API Integration
+The frontend interacts with PxStat using its JSON-RPC API. 
+
+For more information, refer to the PxStat Documentation.
+
+## Contributing
+We welcome contributions! Please follow these guidelines when reporting issues:
+
+- Bug Description (include screenshots if possible)
+- Expected Behavior
+- Actual Behavior
+- Steps to Reproduce
+For feature requests, please describe the proposed functionality and its potential impact.
