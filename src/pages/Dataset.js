@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X } from 'lucide-react';
+import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
 const Dataset = () => {
@@ -7,6 +7,7 @@ const Dataset = () => {
   const [dataset, setDataset] = useState(null);
   const [selectedDimensions, setSelectedDimensions] = useState({});
   const [openDimension, setOpenDimension] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchDataset = async () => {
@@ -55,6 +56,7 @@ const Dataset = () => {
 
   const handleDimensionToggle = (dimensionKey) => {
     setOpenDimension(openDimension === dimensionKey ? null : dimensionKey);
+    setSearchQuery(''); // Reset search query when toggling dimensions
   };
 
   const handleDimensionSelect = (dimensionKey, value, isSelected) => {
@@ -86,6 +88,12 @@ const Dataset = () => {
       ...prev,
       [dimensionKey]: []
     }));
+  };
+
+  const filteredCategories = (categories) => {
+    return Object.entries(categories || {}).filter(([code, label]) =>
+      label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   return (
@@ -155,69 +163,94 @@ const Dataset = () => {
             <div className="bg-white rounded-lg shadow-sm p-8 mt-8">
               <h2 className="text-xl font-medium text-gray-900 mb-6">Select Dimensions</h2>
               <div className="space-y-4">
-                {Object.entries(dimension || {}).map(([key, value]) => (
-                  <div key={key} className="border border-gray-100 overflow-hidden">
-                    <button
-                      onClick={() => handleDimensionToggle(key)}
-                      className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
-                    >
-                      <div>
-                        <div className="text-left text-gray-800 font-medium">{value.label}</div>
-                        {selectedDimensions[key]?.length > 0 && (
-                          <div className="text-sm text-gray-500 mt-1">{selectedDimensions[key]?.length} selected</div>
-                        )}
-                      </div>
-                      <ChevronDown
-                        size={20}
-                        className={`text-gray-400 transition-transform duration-200 ${openDimension === key ? 'transform rotate-180' : ''}`}
-                      />
-                    </button>
-                    
-                    {openDimension === key && (
-                      <div className="border-t border-gray-100">
-                        <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                          <div className="text-sm text-gray-500">
-                            {selectedDimensions[key]?.length || 0} of {Object.keys(value.category?.label || {}).length} selected
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <button
-                              onClick={() => handleSelectAll(key, value.category?.label)}
-                              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              Select all
-                            </button>
-                            <button
-                              onClick={() => handleClearAll(key)}
-                              className="text-sm text-gray-600 hover:text-gray-800 font-medium"
-                            >
-                              Clear all
-                            </button>
-                          </div>
+                {Object.entries(dimension || {}).map(([key, value]) => {
+                  const hasLongDescription = value.label.split(' ').length > 10;
+                  const hasManyRecords = Object.keys(value.category?.label || {}).length > 100;
+
+                  return (
+                    <div key={key} className="border border-gray-100 overflow-hidden">
+                      <button
+                        onClick={() => handleDimensionToggle(key)}
+                        className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
+                      >
+                        <div>
+                          <div className="text-left text-gray-800 font-medium">{value.label}</div>
+                          {selectedDimensions[key]?.length > 0 && (
+                            <div className="text-sm text-gray-500 mt-1">{selectedDimensions[key]?.length} selected</div>
+                          )}
                         </div>
-                        <div className="max-h-64 overflow-y-auto">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-4">
-                            {Object.entries(value.category?.label || {}).map(([code, label]) => {
-                              const isSelected = selectedDimensions[key]?.includes(code);
-                              return (
-                                <div key={code} className="flex items-center">
-                                  <button
-                                    onClick={() => handleDimensionSelect(key, code, !isSelected)}
-                                    className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
-                                  >
-                                    <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
-                                      {isSelected && <Check size={14} className="text-white" />}
-                                    </div>
-                                    <span className="ml-3 text-gray-700 text-sm">{label}</span>
-                                  </button>
+                        <ChevronDown
+                          size={20}
+                          className={`text-gray-400 transition-transform duration-200 ${openDimension === key ? 'transform rotate-180' : ''}`}
+                        />
+                      </button>
+                      
+                      {openDimension === key && (
+                        <div className="border-t border-gray-100">
+                          <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                            <div className="text-sm text-gray-500">
+                              {selectedDimensions[key]?.length || 0} of {Object.keys(value.category?.label || {}).length} selected
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <button
+                                onClick={() => handleSelectAll(key, value.category?.label)}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                Select all
+                              </button>
+                              <button
+                                onClick={() => handleClearAll(key)}
+                                className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                              >
+                                Clear all
+                              </button>
+                            </div>
+                          </div>
+                          <div className="max-h-64 overflow-y-auto">
+                            {hasManyRecords && (
+                              <div className="p-4 border-b border-gray-100">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                  <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
                                 </div>
-                              );
-                            })}
+                              </div>
+                            )}
+                           <div className={`grid ${
+  filteredCategories(value.category?.label).some(([_, label]) => 
+    label.split(' ').length > 10 || label.length > 60
+  ) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
+} gap-2 p-4`}>
+  {filteredCategories(value.category?.label).map(([code, label]) => {
+    const isSelected = selectedDimensions[key]?.includes(code);
+    return (
+      <div key={code} className="flex items-center">
+        <button
+          onClick={() => handleDimensionSelect(key, code, !isSelected)}
+          className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
+        >
+          <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
+            {isSelected && <Check size={14} className="text-white" />}
+          </div>
+          <span className="ml-3 text-gray-700 text-sm whitespace-normal text-left">
+            {label}
+          </span>
+        </button>
+      </div>
+    );
+  })}
+</div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

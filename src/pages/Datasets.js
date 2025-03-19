@@ -128,6 +128,15 @@ const Datasets = () => {
             <span className="mx-2 text-blue-100/40">/</span>
             <span className="text-white">Search Results</span>
           </nav>
+          <div className="md:w-3/4">
+          <h1 
+  className="text-4xl font-medium text-white leading-tight" 
+  style={{ marginBottom: '20px' }}
+>
+  Datasets
+</h1>          </div>
+          <div className="md:w-3/4">
+          </div>
           <form onSubmit={handleSearch} className="flex group">
             <div className="relative flex-1 bg-white/10 rounded-l-lg border-y border-l border-white/20">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-100" size={20} />
