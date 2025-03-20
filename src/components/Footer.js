@@ -41,8 +41,10 @@ const Footer = () => {
                   />
                 </a>
                 <p>All content is available under the <a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">Open Government Licence v3.0</a>, except for graphic assets and where otherwise stated</p>
+<p><strong>Powered by <a href="https://github.com/CSOIreland/PxStat" target="_blank" rel="noopener noreferrer">PxStat</strong></a></p>
                 <p>&copy; Crown Copyright</p>
-              </div>
+              
+</div>
               <div class="ds_site-footer__org">
                 <a class="ds_site-footer__org-link" title="The Scottish Government" href="https://www.gov.scot/">
                   <img 

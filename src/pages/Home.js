@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, BookOpen, LifeBuoy, Database, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
   const [themes, setThemes] = useState([]);
   const [quickLinks, setQuickLinks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('Themes'); // Track active tab
+  const [activeTab, setActiveTab] = useState('Themes');
+  const [subjects, setSubjects] = useState([]);
+  const [products, setProducts] = useState([]);
   const navigate = useNavigate();
 
-    useEffect(() => {
-      document.title = 'Emerald | Home';
-    }, []);
-  
+  useEffect(() => {
+    document.title = 'Emerald | Home';
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -31,12 +33,25 @@ const Home = () => {
         const data = await response.json();
         setThemes(data.result);
 
+        // Extract quick links (Themes)
         const extractedLinks = data.result.map((theme) => ({
           label: theme.ThmValue,
           href: '#',
         }));
-
         setQuickLinks(extractedLinks.slice(0, 9));
+
+        // Randomize Subjects and Products
+        const randomSubjects = data.result.flatMap((theme) => theme.subject)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 9);
+
+        setSubjects(randomSubjects);
+
+        const randomProducts = randomSubjects.flatMap((subject) => subject.product)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 9);
+
+        setProducts(randomProducts);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -50,18 +65,17 @@ const Home = () => {
     navigate(`/datasets?q=${searchTerm}`);
   };
 
+  const navigationTabs = [
+    { label: 'Themes', href: '#' },
+    { label: 'Subjects', href: '#' },
+    { label: 'Products', href: '#' },
+  ];
+
   const topSearches = [
     { label: 'covid', href: '#' },
     { label: 'population', href: '#' },
     { label: 'economy', href: '#' },
     { label: 'energy', href: '#' },
-  ];
-
-  const navigationTabs = [
-    { label: 'Themes', href: '#' },
-    { label: 'Popular Tags', href: '#' },
-    { label: 'Organisations', href: '#' },
-    { label: 'Categories', href: '#' },
   ];
 
   return (
@@ -128,7 +142,7 @@ const Home = () => {
                 href={tab.href}
                 onClick={(e) => {
                   e.preventDefault();
-                  setActiveTab(tab.label); // Set active tab
+                  setActiveTab(tab.label);
                 }}
                 className={`px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 hover:cursor-pointer ${
                   activeTab === tab.label
@@ -145,66 +159,110 @@ const Home = () => {
 
       {/* Content Below Tabs */}
       <div className="container mx-auto px-4 py-8 z-20 relative">
-  {activeTab === 'Themes' && (
-    <div className="grid grid-cols-3 gap-4">
-      {quickLinks.map((link, index) => (
-        <button
-          key={index}
-          onClick={() => {
-            setSearchTerm(link.label); // Update the search term
-            navigate(`/datasets?q=${encodeURIComponent(link.label)}`); // Navigate to the search page
-          }}
-          className="px-4 py-3 bg-white text-sm text-gray-600 hover:text-blue-600 border border-gray-100 rounded transition-colors w-full text-left"
-        >
-          {link.label}
-        </button>
-      ))}
-    </div>
-  )}
-  {/* Add conditional rendering for other tabs here when needed */}
-</div>
+        {activeTab === 'Themes' && (
+          <div className="grid grid-cols-3 gap-4">
+            {quickLinks.map((link, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setSearchTerm(link.label);
+                  navigate(`/datasets?q=${encodeURIComponent(link.label)}`);
+                }}
+                className="px-4 py-3 bg-white text-sm text-gray-600 hover:text-blue-600 border border-gray-100 rounded transition-colors w-full text-left"
+              >
+                {link.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {activeTab === 'Subjects' && (
+          <div className="grid grid-cols-3 gap-4">
+            {subjects.map((subject, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setSearchTerm(subject.SbjValue);
+                  navigate(`/datasets?q=${encodeURIComponent(subject.SbjValue)}`);
+                }}
+                className="px-4 py-3 bg-white text-sm text-gray-600 hover:text-blue-600 border border-gray-100 rounded transition-colors w-full text-left"
+              >
+                {subject.SbjValue}
+              </button>
+            ))}
+          </div>
+        )}
+        {activeTab === 'Products' && (
+          <div className="grid grid-cols-3 gap-4">
+            {products.map((product, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setSearchTerm(product.PrcValue);
+                  navigate(`/datasets?q=${encodeURIComponent(product.PrcValue)}`);
+                }}
+                className="px-4 py-3 bg-white text-sm text-gray-600 hover:text-blue-600 border border-gray-100 rounded transition-colors w-full text-left"
+              >
+                {product.PrcValue}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Other Sections */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm">
-            <div className="text-5xl font-light text-blue-600 mb-2">350+</div>
-            <div className="text-sm text-gray-500 mb-4 space-y-1">
-              <div>Updated: 2:00pm, 27 Nov 2024</div>
-              <div>Next update: 2:00pm, 19 Feb 2025</div>
+          {/* Datasets Card */}
+          <div
+            onClick={() => navigate('/datasets')}
+            className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+          >
+                        <div className="text-5xl font-normal text-blue-600 mb-6">350+</div>
+
+            <h3 className="text-xl font-medium mb-4">Open Statistics for Download</h3>
+            <p className="text-gray-600 mb-4">
+              Explore and download the latest datasets from Scotland’s official statistics.
+            </p>
+            <div className="text-blue-600 font-medium inline-flex items-center group">
+              Browse datasets
+              <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </div>
-            <a href="#" className="text-blue-600 font-medium inline-flex items-center group">
-              See recent datasets
-              <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-            </a>
           </div>
 
-          <div className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm">
+          {/* About Card */}
+          <div
+            onClick={() => navigate('/about')}
+            className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+          >
             <div className="text-blue-600 mb-6">
-              <svg viewBox="0 0 24 24" className="w-12 h-12">
-                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
-                <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" fill="none" />
-              </svg>
+              <BookOpen className="w-12 h-12" />
             </div>
             <h3 className="text-xl font-medium mb-4">About Statistics.gov.scot</h3>
             <p className="text-gray-600 mb-4">
-              Find out more about this open data portal
+              Learn more about Scotland’s official open data portal and its mission.
             </p>
-            <a href="#" className="text-blue-600 font-medium inline-flex items-center group">
-              Read More
-              <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-            </a>
+            <div className="text-blue-600 font-medium inline-flex items-center group">
+              Read more
+              <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
 
-          <div className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm">
-            <div className="h-32 bg-gray-100 mb-6 rounded"></div>
-            <h3 className="text-xl font-medium mb-4">Get help or contact support</h3>
+          {/* Help & Support Card */}
+          <div
+            onClick={() => navigate('/help')}
+            className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+          >
+            <div className="text-blue-600 mb-6">
+              <LifeBuoy className="w-12 h-12" />
+            </div>
+            <h3 className="text-xl font-medium mb-4">Get Help or Contact Support</h3>
             <p className="text-gray-600 mb-4">
-              Find out how to use this open data portal or contact support
+              Find guides, FAQs, and contact information for support.
             </p>
-            <a href="#" className="text-blue-600 font-medium inline-flex items-center group">
+            <div className="text-blue-600 font-medium inline-flex items-center group">
               Go to support
-              <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-            </a>
+              <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
         </div>
       </div>

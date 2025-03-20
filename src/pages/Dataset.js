@@ -132,7 +132,7 @@ const Dataset = () => {
             </div>
             <div className="flex items-center space-x-3">
               {[
-                { icon: Share2, label: 'Share' },
+                { icon: Share2, label: 'API' },
                 { icon: Download, label: 'Download' },
               ].map((item, i) => (
                 <button
