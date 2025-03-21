@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, ChevronDown, Filter, Calendar, Tag, X, Check } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { PropagateLoader } from 'react-spinners';
 
 const Datasets = () => {
   const [filtersVisible, setFiltersVisible] = useState(true);
@@ -16,6 +17,7 @@ const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtersData, setFiltersData] = useState({ topics: [], types: [], organisations: [] });
   const [openFilter, setOpenFilter] = useState(null);
+  const [loading, setLoading] = useState(false); // Add loading state
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -35,6 +37,7 @@ const Datasets = () => {
 
   // Fetch search results
   const fetchSearchResults = async (term) => {
+    setLoading(true); // Set loading to true before fetching data
     try {
       const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
         method: 'POST',
@@ -58,11 +61,14 @@ const Datasets = () => {
       setFiltersData({ topics: uniqueTopics, types: uniqueTypes, organisations: uniqueOrganisations });
     } catch (error) {
       console.error('Error fetching search results:', error);
+    } finally {
+      setLoading(false); // Set loading to false after data is fetched
     }
   };
 
   // Fetch default datasets
   const fetchDefaultDatasets = async () => {
+    setLoading(true); // Set loading to true before fetching data
     try {
       const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
         method: 'POST',
@@ -90,6 +96,8 @@ const Datasets = () => {
       setFiltersData({ topics: [], types: [], organisations: uniqueOrganisations });
     } catch (error) {
       console.error('Error fetching default datasets:', error);
+    } finally {
+      setLoading(false); // Set loading to false after data is fetched
     }
   };
 
@@ -488,43 +496,55 @@ const Datasets = () => {
               </div>
             </div>
 
-            {filteredResults.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">No results found for "{searchQuery}"</p>
+            {loading ? (
+              <div className="ds_page__middle">
+                <div className="ds_wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'top', height: '100vh' }}>
+                  <PropagateLoader
+                    color="#0065bd"
+                    loading={true}
+                    speedMultiplier={1}
+                  />
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredResults.map((result) => (
-                  <div
-                    key={result.MtrCode}
-                    onClick={() => handleDatasetClick(result.MtrCode)}
-                    className="p-6 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer"
-                  >
-                    <h3 className="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors duration-200 mb-2">
-                      {result.MtrTitle}
-                    </h3>
-                    <div className="flex flex-wrap items-center justify-between">
-                      {/* Tags (only for search results) */}
-                      {searchQuery && (
-                        <div className="flex gap-2 flex-wrap">
-                          {result.classification?.map((classification) => (
-                            <span
-                              key={classification.ClsCode}
-                              className="px-3 py-1 bg-gray-50 text-gray-600 text-xs rounded-full flex items-center"
-                            >
-                              <Tag size={12} className="mr-1.5" />
-                              {classification.ClsValue}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <span className="text-xs text-gray-500 mt-2 lg:mt-0">
-                        {new Date(result.RlsLiveDatetimeFrom).toLocaleDateString()}
-                      </span>
+              filteredResults.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No results found for "{searchQuery}"</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredResults.map((result) => (
+                    <div
+                      key={result.MtrCode}
+                      onClick={() => handleDatasetClick(result.MtrCode)}
+                      className="p-6 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer"
+                    >
+                      <h3 className="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors duration-200 mb-2">
+                        {result.MtrTitle}
+                      </h3>
+                      <div className="flex flex-wrap items-center justify-between">
+                        {/* Tags (only for search results) */}
+                        {searchQuery && (
+                          <div className="flex gap-2 flex-wrap">
+                            {result.classification?.map((classification) => (
+                              <span
+                                key={classification.ClsCode}
+                                className="px-3 py-1 bg-gray-50 text-gray-600 text-xs rounded-full flex items-center"
+                              >
+                                <Tag size={12} className="mr-1.5" />
+                                {classification.ClsValue}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-500 mt-2 lg:mt-0">
+                          {new Date(result.RlsLiveDatetimeFrom).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             )}
           </main>
         </div>

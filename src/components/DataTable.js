@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import DataTable from 'react-data-table-component'; // Replace vanilla DataTables
+import DataTable from 'react-data-table-component'; // Importing DataTable from the library
 
-const DataTable = ({ tableData }) => {
+// Renaming the custom component to avoid conflict
+const CustomDataTable = ({ tableData }) => {
   const [columns, setColumns] = useState([]);
   const [data, setData] = useState([]);
 
@@ -18,7 +19,7 @@ const DataTable = ({ tableData }) => {
     // Replicate vanilla UI's JSON-stat processing
     const dimensions = Object.keys(jsonstat.dimension);
     const size = jsonstat.size;
-    
+
     const columns = dimensions.map(dim => ({
       name: jsonstat.dimension[dim].label,
       selector: row => row[dim],
@@ -35,7 +36,7 @@ const DataTable = ({ tableData }) => {
     // Generate data rows - replicate vanilla UI's value mapping
     const data = [];
     const valueIndex = 0; // Adjust based on dimension order
-    
+
     jsonstat.value.forEach((value, index) => {
       const row = {};
       dimensions.forEach((dim, dimIndex) => {
@@ -73,4 +74,4 @@ const DataTable = ({ tableData }) => {
   );
 };
 
-export default DataTable;
+export default CustomDataTable;

@@ -1,55 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search, Eye } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-
-// New DataTable component
-const DataTable = ({ tableData }) => {
-  const { dimension, value, size, id } = tableData;
-
-  // Generate headers from all dimensions
-  const headers = id.map(dimKey => {
-    const dim = dimension[dimKey];
-    const labels = Object.values(dim.category.label);
-    return labels[0]; // For simplicity, taking first label; adjust for multi-selection
-  });
-
-  // Map values to rows based on size (assuming flat value array for now)
-  const rows = [];
-  let valueIndex = 0;
-  for (let i = 0; i < size[2]; i++) { // size[2] = 12 (C03452V05075 categories)
-    rows.push([value[valueIndex++]]); // Single column for simplicity; expand as needed
-  }
-
-  return (
-    <div className="card mb-2" name="result-table">
-      <div className="card-body">
-        <table className="table table-striped table-bordered" style={{ width: '100%' }}>
-          <thead>
-            <tr>
-              {headers.map((header, index) => (
-                <th key={index} className="py-2 px-4 border-b">{header}</th>
-              ))}
-              <th className="py-2 px-4 border-b">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {/* Repeat dimension labels for context */}
-                {id.map((dimKey, colIndex) => (
-                  <td key={colIndex} className="py-2 px-4 border-b">
-                    {dimension[dimKey].category.label[dimension[dimKey].category.index[0]]}
-                  </td>
-                ))}
-                <td className="py-2 px-4 border-b">{row[0]}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
+import APIModal from '../components/modals/APIModal';
+import TableModal from '../components/modals/TableModal';
 
 const Dataset = () => {
   const { id } = useParams();
@@ -59,6 +12,9 @@ const Dataset = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tableData, setTableData] = useState(null);
   const [error, setError] = useState(null);
+  const [apiData, setApiData] = useState(null);
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchDataset = async () => {
@@ -127,8 +83,20 @@ const Dataset = () => {
       if (data.error) throw new Error(data.error.message);
       setTableData(data.result);
       setError(null);
+      setIsTableModalOpen(true);
     } catch (err) {
       setError('An error occurred while fetching the dataset: ' + (err.message || 'Please try again.'));
+    }
+  };
+
+  const handleApiClick = async () => {
+    try {
+      const response = await fetch(dataset.href);
+      const data = await response.json();
+      setApiData(data);
+      setIsApiModalOpen(true);
+    } catch (err) {
+      setError('An error occurred while fetching the API data: ' + (err.message || 'Please try again.'));
     }
   };
 
@@ -179,7 +147,6 @@ const Dataset = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
-        {/* Header UI unchanged */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,...')] opacity-30"></div>
         <div className="relative max-w-6xl mx-auto px-8 py-16">
@@ -213,12 +180,13 @@ const Dataset = () => {
             </div>
             <div className="flex items-center space-x-3">
               {[
-                { icon: Share2, label: 'API' },
+                { icon: Share2, label: 'API', onClick: handleApiClick },
                 { icon: Download, label: 'Download' },
               ].map((item, i) => (
                 <button
                   key={i}
                   className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center space-x-2 transition-all duration-200"
+                  onClick={item.onClick}
                 >
                   <item.icon size={16} />
                   <span>{item.label}</span>
@@ -341,12 +309,18 @@ const Dataset = () => {
 
             {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
 
-            {tableData && (
-              <div className="bg-white rounded-lg shadow-sm p-8 mt-8">
-                <h2 className="text-xl font-medium text-gray-900 mb-6">Table Data</h2>
-                <DataTable tableData={tableData} />
-              </div>
-            )}
+            <APIModal
+              isOpen={isApiModalOpen}
+              onRequestClose={() => setIsApiModalOpen(false)}
+              apiData={apiData}
+              apiUrl={dataset.href}
+            />
+
+            <TableModal
+              isOpen={isTableModalOpen}
+              onRequestClose={() => setIsTableModalOpen(false)}
+              tableData={tableData}
+            />
           </div>
 
           <div className="lg:w-1/3">
