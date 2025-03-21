@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const Help = () => {
   useEffect(() => {
-    document.title = "Cobalt | Help";
+    document.title = "Emerald | Help";
   }, []);
 
   return (
@@ -23,7 +23,7 @@ const Help = () => {
             <div className="md:w-3/4">
               <h1 className="text-4xl font-medium text-white leading-tight">Help & Support</h1>
               <p className="mt-6 text-blue-100 text-lg leading-relaxed">
-                Find answers to common questions and get support for the Cobalt Open Data Portal.
+                Find answers to common questions and get support for the Emerald Open Data Portal.
               </p>
             </div>
           </div>

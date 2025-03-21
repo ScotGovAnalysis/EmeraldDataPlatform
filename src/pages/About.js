@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const About = () => {
   useEffect(() => {
-    document.title = "Cobalt | About";
+    document.title = "Emerald | About";
   }, []);
 
   return (
@@ -23,7 +23,7 @@ const About = () => {
             <div className="md:w-3/4">
               <h1 className="text-4xl font-medium text-white leading-tight">About</h1>
               <p className="mt-6 text-blue-100 text-lg leading-relaxed">
-                Cobalt Open Data Portal
+              Emerald Open Data Portal
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-6">
                 <div className="flex items-center text-blue-100">

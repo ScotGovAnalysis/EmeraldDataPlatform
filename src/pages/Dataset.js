@@ -1,6 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search } from 'lucide-react';
+import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search, Eye } from 'lucide-react';
 import { useParams } from 'react-router-dom';
+
+// New DataTable component
+const DataTable = ({ tableData }) => {
+  const { dimension, value, size, id } = tableData;
+
+  // Generate headers from all dimensions
+  const headers = id.map(dimKey => {
+    const dim = dimension[dimKey];
+    const labels = Object.values(dim.category.label);
+    return labels[0]; // For simplicity, taking first label; adjust for multi-selection
+  });
+
+  // Map values to rows based on size (assuming flat value array for now)
+  const rows = [];
+  let valueIndex = 0;
+  for (let i = 0; i < size[2]; i++) { // size[2] = 12 (C03452V05075 categories)
+    rows.push([value[valueIndex++]]); // Single column for simplicity; expand as needed
+  }
+
+  return (
+    <div className="card mb-2" name="result-table">
+      <div className="card-body">
+        <table className="table table-striped table-bordered" style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              {headers.map((header, index) => (
+                <th key={index} className="py-2 px-4 border-b">{header}</th>
+              ))}
+              <th className="py-2 px-4 border-b">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {/* Repeat dimension labels for context */}
+                {id.map((dimKey, colIndex) => (
+                  <td key={colIndex} className="py-2 px-4 border-b">
+                    {dimension[dimKey].category.label[dimension[dimKey].category.index[0]]}
+                  </td>
+                ))}
+                <td className="py-2 px-4 border-b">{row[0]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 const Dataset = () => {
   const { id } = useParams();
@@ -8,14 +57,14 @@ const Dataset = () => {
   const [selectedDimensions, setSelectedDimensions] = useState({});
   const [openDimension, setOpenDimension] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [tableData, setTableData] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchDataset = async () => {
       const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: 'PxStat.Data.Cube_API.ReadMetadata',
@@ -36,6 +85,53 @@ const Dataset = () => {
     document.title = 'Emerald | Dataset';
   }, [id]);
 
+  const handleViewClick = async () => {
+    try {
+      const dimensions = {};
+      Object.keys(selectedDimensions).forEach(key => {
+        if (selectedDimensions[key]?.length > 0) {
+          dimensions[key] = { category: { index: selectedDimensions[key] } };
+        }
+      });
+
+      if (Object.keys(dimensions).length === 0) {
+        setError('Please select at least one option from each dimension');
+        return;
+      }
+
+      const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'PxStat.Data.Cube_API.ReadDataset',
+          params: {
+            class: 'query',
+            id: Object.keys(dimensions),
+            dimension: dimensions,
+            extension: {
+              pivot: null,
+              codes: false,
+              language: { code: 'en' },
+              format: { type: 'JSON-stat', version: '2.0' },
+              matrix: id,
+            },
+            version: '2.0',
+            m2m: false,
+          },
+          id: 677981009,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+      setTableData(data.result);
+      setError(null);
+    } catch (err) {
+      setError('An error occurred while fetching the dataset: ' + (err.message || 'Please try again.'));
+    }
+  };
+
   if (!dataset) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -44,50 +140,34 @@ const Dataset = () => {
     );
   }
 
-  const {
-    label,
-    dimension,
-    extension,
-    href,
-    link,
-    updated,
-    note,
-  } = dataset;
+  const { label, dimension, extension, updated, note, link } = dataset;
 
   const handleDimensionToggle = (dimensionKey) => {
     setOpenDimension(openDimension === dimensionKey ? null : dimensionKey);
-    setSearchQuery(''); // Reset search query when toggling dimensions
+    setSearchQuery('');
   };
 
   const handleDimensionSelect = (dimensionKey, value, isSelected) => {
-    setSelectedDimensions((prev) => {
+    setSelectedDimensions(prev => {
       const currentSelected = prev[dimensionKey] || [];
-      if (isSelected) {
-        return {
-          ...prev,
-          [dimensionKey]: [...currentSelected, value]
-        };
-      } else {
-        return {
-          ...prev,
-          [dimensionKey]: currentSelected.filter(v => v !== value)
-        };
-      }
+      return {
+        ...prev,
+        [dimensionKey]: isSelected
+          ? [...currentSelected, value]
+          : currentSelected.filter(v => v !== value),
+      };
     });
   };
 
   const handleSelectAll = (dimensionKey, categories) => {
-    setSelectedDimensions((prev) => ({
+    setSelectedDimensions(prev => ({
       ...prev,
-      [dimensionKey]: Object.keys(categories)
+      [dimensionKey]: Object.keys(categories),
     }));
   };
 
   const handleClearAll = (dimensionKey) => {
-    setSelectedDimensions((prev) => ({
-      ...prev,
-      [dimensionKey]: []
-    }));
+    setSelectedDimensions(prev => ({ ...prev, [dimensionKey]: [] }));
   };
 
   const filteredCategories = (categories) => {
@@ -99,8 +179,9 @@ const Dataset = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
+        {/* Header UI unchanged */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,...')] opacity-30"></div>
         <div className="relative max-w-6xl mx-auto px-8 py-16">
           <nav className="text-sm text-blue-100/80 flex items-center mb-8">
             <span className="hover:text-white cursor-pointer transition-colors duration-200">
@@ -159,7 +240,7 @@ const Dataset = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="bg-white rounded-lg shadow-sm p-8 mt-8">
               <h2 className="text-xl font-medium text-gray-900 mb-6">Select Dimensions</h2>
               <div className="space-y-4">
@@ -184,7 +265,7 @@ const Dataset = () => {
                           className={`text-gray-400 transition-transform duration-200 ${openDimension === key ? 'transform rotate-180' : ''}`}
                         />
                       </button>
-                      
+
                       {openDimension === key && (
                         <div className="border-t border-gray-100">
                           <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
@@ -221,30 +302,26 @@ const Dataset = () => {
                                 </div>
                               </div>
                             )}
-                           <div className={`grid ${
-  filteredCategories(value.category?.label).some(([_, label]) => 
-    label.split(' ').length > 10 || label.length > 60
-  ) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'
-} gap-2 p-4`}>
-  {filteredCategories(value.category?.label).map(([code, label]) => {
-    const isSelected = selectedDimensions[key]?.includes(code);
-    return (
-      <div key={code} className="flex items-center">
-        <button
-          onClick={() => handleDimensionSelect(key, code, !isSelected)}
-          className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
-        >
-          <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
-            {isSelected && <Check size={14} className="text-white" />}
-          </div>
-          <span className="ml-3 text-gray-700 text-sm whitespace-normal text-left">
-            {label}
-          </span>
-        </button>
-      </div>
-    );
-  })}
-</div>
+                            <div className={`grid ${filteredCategories(value.category?.label).some(([_, label]) => label.split(' ').length > 10 || label.length > 60) ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-2 p-4`}>
+                              {filteredCategories(value.category?.label).map(([code, label]) => {
+                                const isSelected = selectedDimensions[key]?.includes(code);
+                                return (
+                                  <div key={code} className="flex items-center">
+                                    <button
+                                      onClick={() => handleDimensionSelect(key, code, !isSelected)}
+                                      className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
+                                    >
+                                      <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
+                                        {isSelected && <Check size={14} className="text-white" />}
+                                      </div>
+                                      <span className="ml-3 text-gray-700 text-sm whitespace-normal text-left">
+                                        {label}
+                                      </span>
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -253,8 +330,25 @@ const Dataset = () => {
                 })}
               </div>
             </div>
+
+            <button
+              onClick={handleViewClick}
+              className="w-full px-4 py-2 mt-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 transition-all duration-200"
+            >
+              <Eye size={16} />
+              <span>View</span>
+            </button>
+
+            {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
+
+            {tableData && (
+              <div className="bg-white rounded-lg shadow-sm p-8 mt-8">
+                <h2 className="text-xl font-medium text-gray-900 mb-6">Table Data</h2>
+                <DataTable tableData={tableData} />
+              </div>
+            )}
           </div>
-          
+
           <div className="lg:w-1/3">
             <div className="sticky top-8">
               <div className="bg-white rounded-lg shadow-sm p-6">

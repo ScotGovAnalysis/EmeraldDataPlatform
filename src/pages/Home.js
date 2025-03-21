@@ -224,7 +224,7 @@ const Home = () => {
               Explore and download the latest datasets from Scotland’s official statistics.
             </p>
             <div className="text-blue-600 font-medium inline-flex items-center group">
-              Browse datasets
+              Browse recent datasets
               <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

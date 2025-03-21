@@ -1,8 +1,9 @@
 {
-  "name": "topazdata",
+  "name": "emerald",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@emotion/react": "^11.14.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -10,6 +11,7 @@
     "env-cmd": "^10.1.0",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
+    "react-data-table-component": "^7.7.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.4.0",
     "react-scripts": "5.0.1",
