@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search, Eye } from 'lucide-react';
 import { useParams } from 'react-router-dom';
-import APIModal from '../components/modals/APIModal';
-import TableModal from '../components/modals/TableModal';
+import APIModal from '../modals/APIModal';
+import DataViewerModal from '../modals/DataViewerModal';
+import ChartConfigurationModal from '../modals/ChartConfigurationModal';
+import ChartRenderingModal from '../modals/ChartRenderingModal';
 
 const Dataset = () => {
   const { id } = useParams();
@@ -11,10 +13,26 @@ const Dataset = () => {
   const [openDimension, setOpenDimension] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [tableData, setTableData] = useState(null);
+  const [chartConfig, setChartConfig] = useState({
+    type: 'bar',
+    dimensions: [],
+    series: [],
+    labels: [],
+    title: 'Chart Title',
+    xAxisLabel: '',
+    yAxisLabel: '',
+    dualAxis: false,
+    stacked: false,
+    stackedPercentage: false,
+    autoScale: true,
+    legendPosition: 'top',
+  });
   const [error, setError] = useState(null);
   const [apiData, setApiData] = useState(null);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [isChartConfigOpen, setIsChartConfigOpen] = useState(false);
+  const [isChartRenderOpen, setIsChartRenderOpen] = useState(false);
 
   useEffect(() => {
     const fetchDataset = async () => {
@@ -98,6 +116,12 @@ const Dataset = () => {
     } catch (err) {
       setError('An error occurred while fetching the API data: ' + (err.message || 'Please try again.'));
     }
+  };
+
+  const handleConfigureChart = (config) => {
+    setChartConfig(config);
+    setIsChartConfigOpen(false);
+    setIsChartRenderOpen(true);
   };
 
   if (!dataset) {
@@ -299,13 +323,22 @@ const Dataset = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleViewClick}
-              className="w-full px-4 py-2 mt-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 transition-all duration-200"
-            >
-              <Eye size={16} />
-              <span>View</span>
-            </button>
+            <div className="mt-8 flex space-x-4">
+              <button
+                onClick={() => setIsChartConfigOpen(true)}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 transition-all duration-200"
+              >
+                <Eye size={16} />
+                <span>Configure Chart</span>
+              </button>
+              <button
+                onClick={handleViewClick}
+                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2 transition-all duration-200"
+              >
+                <Table size={16} />
+                <span>View Data</span>
+              </button>
+            </div>
 
             {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
 
@@ -316,7 +349,23 @@ const Dataset = () => {
               apiUrl={dataset.href}
             />
 
-            <TableModal
+<ChartConfigurationModal
+  isOpen={isChartConfigOpen}
+  onRequestClose={() => setIsChartConfigOpen(false)}
+  onConfigureChart={handleConfigureChart}
+  dataset={dataset}
+/>
+
+    
+        <ChartRenderingModal
+        isOpen={isChartRenderOpen}
+        onRequestClose={() => setIsChartRenderOpen(false)}
+        chartConfig={chartConfig}
+        dataset={dataset}
+      />
+
+
+            <DataViewerModal
               isOpen={isTableModalOpen}
               onRequestClose={() => setIsTableModalOpen(false)}
               tableData={tableData}

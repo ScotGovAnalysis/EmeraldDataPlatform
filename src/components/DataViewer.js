@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DataTable from 'react-data-table-component'; // Importing DataTable from the library
 
 // Renaming the custom component to avoid conflict
-const CustomDataTable = ({ tableData }) => {
+const DataViewer = ({ tableData }) => {
   const [columns, setColumns] = useState([]);
   const [data, setData] = useState([]);
 
@@ -74,4 +74,4 @@ const CustomDataTable = ({ tableData }) => {
   );
 };
 
-export default CustomDataTable;
+export default DataViewer;

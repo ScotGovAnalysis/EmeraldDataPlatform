@@ -1,9 +1,9 @@
 import React from 'react';
 import Modal from 'react-modal';
 import { X } from 'lucide-react';
-import CustomDataTable from '../DataTable';
+import CustomDataTable from '../components/DataViewer';
 
-const TableModal = ({ isOpen, onRequestClose, tableData }) => {
+const DataViewerModal = ({ isOpen, onRequestClose, tableData }) => {
   return (
     <Modal
       isOpen={isOpen}
@@ -23,4 +23,4 @@ const TableModal = ({ isOpen, onRequestClose, tableData }) => {
   );
 };
 
-export default TableModal;
+export default DataViewerModal;
