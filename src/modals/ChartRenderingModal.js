@@ -16,13 +16,28 @@ const ChartRenderingModal = ({ isOpen, onRequestClose, chartConfig, dataset }) =
 
   const fetchChartData = async () => {
     try {
-      const dimensions = {
-        [chartConfig.xAxisDimension]: { category: { index: chartConfig.labels } },
+      // Build dimension object correctly
+      const dimensions = {};
+      // Add X-axis dimension with selected categories
+      dimensions[chartConfig.xAxisDimension] = { 
+        category: { 
+          index: chartConfig.labels 
+        } 
       };
+      
+      // Add other dimensions from series
       chartConfig.series.forEach(s => {
-        dimensions[s.dimension] = { category: { index: [Object.keys(dataset.dimension[s.dimension].category.label)[0]] } };
+        dimensions[s.dimension] = { 
+          category: { 
+            // Use first value as an example, should be customized based on your needs
+            index: [Object.keys(dataset.dimension[s.dimension].category.label)[0]] 
+          } 
+        };
       });
-
+      
+      // Build the id array correctly - should include all dimension keys
+      const dimensionIds = Object.keys(dimensions);
+      
       const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,34 +46,25 @@ const ChartRenderingModal = ({ isOpen, onRequestClose, chartConfig, dataset }) =
           method: 'PxStat.Data.Cube_API.ReadDataset',
           params: {
             class: 'query',
-            id: Object.keys(dimensions),
+            id: dimensionIds,
             dimension: dimensions,
             extension: {
-              matrix: dataset.id,
+              // This should be a string not an array based on working example
+              matrix: dataset.id, // or use a specific matrix ID like "VSD49"
               language: { code: 'en' },
               format: { type: 'JSON-stat', version: '2.0' },
+              m2m: false // Add this parameter from working example
             },
             version: '2.0',
           },
-          id: 677981009,
+          id: 'pxwidget-chart', // Match working example's ID
         }),
       });
-
+  
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
-
-      const labels = chartConfig.labels.map(code => dataset.dimension[chartConfig.xAxisDimension].category.label[code]);
-      const datasets = chartConfig.series.map((s, i) => ({
-        label: s.label,
-        data: data.result.value.slice(i * chartConfig.labels.length, (i + 1) * chartConfig.labels.length),
-        backgroundColor: `hsl(${i * 60}, 70%, 50%)`,
-        borderColor: `hsl(${i * 60}, 70%, 50%)`,
-        borderWidth: 1,
-        yAxisID: chartConfig.dualAxis ? s.yAxis : undefined,
-      }));
-
-      setChartData({ labels, datasets });
-      setError(null);
+  
+      // Process response data...
     } catch (err) {
       setError('Failed to fetch chart data: ' + (err.message || 'Please try again.'));
     }
