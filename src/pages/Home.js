@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, BookOpen, LifeBuoy, Database, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import config from '../config.js';
 
 const Home = () => {
   const [themes, setThemes] = useState([]);
@@ -18,7 +19,7 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+        const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -86,16 +87,16 @@ const Home = () => {
         style={{ backgroundImage: 'url(/assets/images/edinburgh_skyline.jpg)' }}
       >
         <div className="absolute inset-0 bg-black/50">
-          <div className="container mx-auto px-4 h-full flex flex-col items-start justify-center mt-32">
+          <div className="container mx-auto px-4 h-full flex flex-col items-start justify-center mt-16">
             <h1 className="text-left text-white text-6xl font-bold mb-4 tracking-wide">
               Emerald Open Data Portal
             </h1>
-            <p className="text-gray-200 text-l mb-12">
-              Scotland’s official open data portal provides public access to the data behind our
+            <p className="text-gray-200 text-l mb-8">
+              Scotland's official open data portal provides public access to the data behind our
               official statistics. The site is managed by The Scottish Government on behalf of all
               producers of official statistics in Scotland.
             </p>
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-2xl mb-12">
               <form onSubmit={handleSearch}>
                 <div className="relative">
                   <input
@@ -217,8 +218,7 @@ const Home = () => {
             onClick={() => navigate('/datasets')}
             className="bg-white p-8 border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
           >
-                        <div className="text-5xl font-normal text-blue-600 mb-6">350+</div>
-
+            <div className="text-5xl font-normal text-blue-600 mb-6">350+</div>
             <h3 className="text-xl font-medium mb-4">Open Statistics for Download</h3>
             <p className="text-gray-600 mb-4">
               Explore and download the latest datasets from Scotland’s official statistics.

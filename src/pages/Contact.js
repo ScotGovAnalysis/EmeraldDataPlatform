@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Phone, Mail, MapPin } from 'lucide-react';
 
 const Contact = () => {
@@ -22,23 +22,23 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-6xl mx-auto px-8 py-16">
-          <nav className="text-sm text-blue-100/80 flex items-center mb-8">
-            <span className="hover:text-white cursor-pointer transition-colors duration-200">
-              <a href="/home">Home</a>
+        <div className="relative max-w-6xl mx-auto px-8 py-16" style={{ paddingTop: '30px', paddingBottom: '30px' }}>
+          <nav className="breadcrumb">
+            <span className="breadcrumb-link">
+              <Link to="/home">Home</Link>
             </span>
-            <span className="mx-2 text-blue-100/40">/</span>
-            <span className="text-white">Contact Us</span>
+            <span className="separator">/</span>
+            <span className="current-page">Contact Us</span>
           </nav>
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-            <div className="md:w-3/4">
-              <h1 className="text-4xl font-medium text-white leading-tight">Contact Us</h1>
-              <p className="mt-6 text-blue-100 text-lg leading-relaxed">
-                The Open Data team values your feedback, questions, or comments. We are always happy to hear from you.
-              </p>
-            </div>
+          <div className="md:w-3/4">
+            <h1 className="text-4xl font-medium text-white leading-tight" style={{ marginBottom: '20px' }}>
+              Contact Us
+            </h1>
+            <p className="text-lg text-gray-200 mb-4">
+              The Open Data team values your feedback, questions, or comments. We are always happy to hear from you.
+            </p>
           </div>
         </div>
       </div>
@@ -87,7 +87,7 @@ const Contact = () => {
           <div className="lg:w-2/3">
             <div className="bg-white rounded-lg shadow-sm p-8">
               <h2 className="text-xl font-medium text-gray-900 mb-6">Send Us a Message</h2>
-              <p className="text-gray-600">We aim to get back to you within 3 days.</p>
+              <p className="text-gray-600">We aim to get back to you within 10 working days.</p>
               <form onSubmit={handleSubmit} className="mt-6">
                 <div className="mb-4">
                   <label htmlFor="name" className="block text-gray-700">Your Name</label>

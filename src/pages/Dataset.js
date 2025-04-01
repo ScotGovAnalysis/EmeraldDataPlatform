@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search, Eye } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import APIModal from '../modals/APIModal';
 import DataViewerModal from '../modals/DataViewerModal';
 import ChartConfigurationModal from '../modals/ChartConfigurationModal';
 import ChartRenderingModal from '../modals/ChartRenderingModal';
+import config from '../config.js';
 
 const Dataset = () => {
   const { id } = useParams();
@@ -36,7 +37,7 @@ const Dataset = () => {
 
   useEffect(() => {
     const fetchDataset = async () => {
-      const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,7 +74,7 @@ const Dataset = () => {
         return;
       }
 
-      const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,12 +100,79 @@ const Dataset = () => {
 
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
-      setTableData(data.result);
+
+      // Parse the JSON-stat response
+      const parsedData = parseJsonStat(data.result);
+      setTableData(parsedData);
       setError(null);
       setIsTableModalOpen(true);
     } catch (err) {
       setError('An error occurred while fetching the dataset: ' + (err.message || 'Please try again.'));
     }
+  };
+
+  const parseJsonStat = (jsonStat) => {
+    const { dimension, value, size, id } = jsonStat;
+
+    if (!dimension || !value || !size || !id) {
+      console.error("Invalid JSON-stat structure");
+      return [];
+    }
+
+    // Function to calculate the position in the value array
+    const getPosition = (indices) => {
+      let position = 0;
+      let multiplier = 1;
+
+      // Process indices in reverse order (matches JSON-stat convention)
+      for (let i = indices.length - 1; i >= 0; i--) {
+        position += indices[i] * multiplier;
+        multiplier *= size[i];
+      }
+
+      return position;
+    };
+
+    // Generate all possible combinations of indices
+    const generateRows = (dimensionIndices = [], currentDimension = 0) => {
+      // Base case: if we've processed all dimensions, create a row
+      if (currentDimension >= id.length) {
+        const position = getPosition(dimensionIndices);
+        const row = {};
+
+        // Map dimension IDs to their labels
+        id.forEach((dimId, index) => {
+          const dim = dimension[dimId];
+          const categoryIndex = dim.category.index[dimensionIndices[index]];
+          row[dimId] = dim.category.label[categoryIndex];
+        });
+
+        // Add the value (if it exists at this position)
+        row["Value"] = position < value.length ? value[position] : null;
+
+        return [row];
+      }
+
+      // Recursive case: iterate through all values of the current dimension
+      const dimId = id[currentDimension];
+      const dim = dimension[dimId];
+      const results = [];
+
+      for (let i = 0; i < dim.category.index.length; i++) {
+        const newIndices = [...dimensionIndices];
+        newIndices[currentDimension] = i;
+        const rows = generateRows(newIndices, currentDimension + 1);
+        results.push(...rows);
+      }
+
+      return results;
+    };
+
+    // Generate all rows
+    const tableData = generateRows();
+
+    console.log("Parsed Table Data:", tableData);
+    return tableData;
   };
 
   const handleApiClick = async () => {
@@ -171,20 +239,21 @@ const Dataset = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,...')] opacity-30"></div>
-        <div className="relative max-w-6xl mx-auto px-8 py-16">
-          <nav className="text-sm text-blue-100/80 flex items-center mb-8">
-            <span className="hover:text-white cursor-pointer transition-colors duration-200">
-              <a href="/home">Home</a>
+        <div className="relative max-w-6xl mx-auto px-8 py-16" style={{ paddingTop: '30px', paddingBottom: '30px' }}>
+          <nav className="breadcrumb">
+            <span className="breadcrumb-link">
+              <Link to="/home">Home</Link>
             </span>
-            <span className="mx-2 text-blue-100/40">/</span>
-            <span className="hover:text-white cursor-pointer transition-colors duration-200">
-              <a href="/datasets">Datasets</a>
+            <span className="separator">/</span>
+            <span className="breadcrumb-link">
+              <Link to="/datasets">Datasets</Link>
             </span>
-            <span className="mx-2 text-blue-100/40">/</span>
-            <span className="text-white">{label}</span>
+            <span className="separator">/</span>
+            <span className="current-page">{label}</span>
           </nav>
+
           <div className="flex flex-col md:flex-row justify-between items-start gap-8">
             <div className="md:w-3/4">
               <h1 className="text-4xl font-medium text-white leading-tight">{label}</h1>
@@ -326,18 +395,18 @@ const Dataset = () => {
             <div className="mt-8 flex space-x-4">
               <button
                 onClick={() => setIsChartConfigOpen(true)}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 transition-all duration-200"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 transition-all duration-200"
               >
                 <Eye size={16} />
                 <span>Configure Chart</span>
               </button>
               <button
-                onClick={handleViewClick}
-                className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white flex items-center space-x-2 transition-all duration-200"
-              >
-                <Table size={16} />
-                <span>View Data</span>
-              </button>
+  onClick={handleViewClick}
+  className="px-4 py-2 bg-white hover:bg-gray-100 text-blue-600 border border-blue-600 flex items-center space-x-2 transition-all duration-200"
+>
+  <Table size={16} />
+  <span>View Data</span>
+</button>
             </div>
 
             {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
@@ -349,21 +418,20 @@ const Dataset = () => {
               apiUrl={dataset.href}
             />
 
-<ChartConfigurationModal
-  isOpen={isChartConfigOpen}
-  onRequestClose={() => setIsChartConfigOpen(false)}
-  onConfigureChart={handleConfigureChart}
-  dataset={dataset}
-/>
+            <ChartConfigurationModal
+              isOpen={isChartConfigOpen}
+              onRequestClose={() => setIsChartConfigOpen(false)}
+              onConfigureChart={handleConfigureChart}
+              dataset={dataset}
+            />
 
-    
-        <ChartRenderingModal
-        isOpen={isChartRenderOpen}
-        onRequestClose={() => setIsChartRenderOpen(false)}
-        chartConfig={chartConfig}
-        dataset={dataset}
-      />
-
+            <ChartRenderingModal
+              isOpen={isChartRenderOpen}
+              onRequestClose={() => setIsChartRenderOpen(false)}
+              chartConfig={chartConfig}
+              dataset={dataset}
+              matrix={id} // Pass the matrix ID from the URL params
+            />
 
             <DataViewerModal
               isOpen={isTableModalOpen}
@@ -385,14 +453,27 @@ const Dataset = () => {
                     <div className="flex items-center">
                       {item.type === 'text/csv' ? (
                         <FileText size={20} className="text-blue-600 mr-3" />
-                      ) : (
+                      ) : item.type === 'application/json' ? (
+                        <FileText size={20} className="text-yellow-600 mr-3" />
+                      ) : item.type === 'application/base64' ? (
                         <Table size={20} className="text-green-600 mr-3" />
+                      ) : (
+                        <FileText size={20} className="text-purple-600 mr-3" />
                       )}
                       <div className="text-left">
                         <h4 className="font-medium text-gray-900">
-                          {item.type === 'text/csv' ? 'CSV Data' : 'Supporting Data'}
+                          {item.type === 'text/csv'
+                            ? 'CSV Data'
+                            : item.type === 'application/json'
+                            ? 'JSON File'
+                            : item.type === 'application/base64'
+                            ? 'Excel Spreadsheet'
+                            : 'PxStat File'}
                         </h4>
-                        <p className="text-sm text-gray-500">{item.type.split('/')[1].toUpperCase()} • {item.href.split('/').pop().split('.').pop().toUpperCase()}</p>
+                        <p className="text-sm text-gray-500">
+                          {item.type.split('/')[1].toUpperCase()} •{' '}
+                          {item.href.split('/').pop().split('.').pop().toUpperCase()}
+                        </p>
                       </div>
                     </div>
                     <Download size={18} className="text-gray-400" />

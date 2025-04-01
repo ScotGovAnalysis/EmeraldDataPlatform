@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Search, ChevronDown, Filter, Calendar, Tag, X, Check } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { PropagateLoader } from 'react-spinners';
+import config from '../config.js';
 
 const Datasets = () => {
   const [filtersVisible, setFiltersVisible] = useState(true);
@@ -17,7 +18,9 @@ const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtersData, setFiltersData] = useState({ topics: [], types: [], organisations: [] });
   const [openFilter, setOpenFilter] = useState(null);
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [resultsPerPage] = useState(10);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -37,9 +40,9 @@ const Datasets = () => {
 
   // Fetch search results
   const fetchSearchResults = async (term) => {
-    setLoading(true); // Set loading to true before fetching data
+    setLoading(true);
     try {
-      const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,15 +65,15 @@ const Datasets = () => {
     } catch (error) {
       console.error('Error fetching search results:', error);
     } finally {
-      setLoading(false); // Set loading to false after data is fetched
+      setLoading(false);
     }
   };
 
   // Fetch default datasets
   const fetchDefaultDatasets = async () => {
-    setLoading(true); // Set loading to true before fetching data
+    setLoading(true);
     try {
-      const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,10 +87,10 @@ const Datasets = () => {
       });
       const data = await response.json();
       const datasets = data.result.link.item.map((item) => ({
-        MtrCode: item.extension.matrix, // Use matrix from extension
+        MtrCode: item.extension.matrix,
         MtrTitle: item.label,
         RlsLiveDatetimeFrom: item.updated,
-        CprValue: item.extension.copyright.name, // Add organisation
+        CprValue: item.extension.copyright.name,
       }));
       setSearchResults(datasets);
 
@@ -97,7 +100,7 @@ const Datasets = () => {
     } catch (error) {
       console.error('Error fetching default datasets:', error);
     } finally {
-      setLoading(false); // Set loading to false after data is fetched
+      setLoading(false);
     }
   };
 
@@ -125,7 +128,7 @@ const Datasets = () => {
     if (searchTerm.trim()) {
       navigate(`/datasets?q=${encodeURIComponent(searchTerm.trim())}`);
     } else {
-      navigate('/datasets'); // Treat empty search as no search term
+      navigate('/datasets');
     }
   };
 
@@ -144,21 +147,32 @@ const Datasets = () => {
     }));
   };
 
+  // Pagination logic
+  const indexOfLastResult = currentPage * resultsPerPage;
+  const indexOfFirstResult = indexOfLastResult - resultsPerPage;
+  const currentResults = filteredResults.slice(indexOfFirstResult, indexOfLastResult);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   // Render the component
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
+      {/* Hero Section with Breadcrumbs */}
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-6xl mx-auto px-8 py-16">
-          <nav className="text-sm text-blue-100/80 flex items-center mb-8">
-            <span className="hover:text-white cursor-pointer transition-colors duration-200">
-              <a href="/home">Home</a>
-            </span>
-            <span className="mx-2 text-blue-100/40">/</span>
-            <span className="text-white">Search Results</span>
-          </nav>
+        <div class="relative max-w-6xl mx-auto px-8 py-16" style= {{  paddingTop: '30px',    paddingBottom: '30px'}}>
+
+          {/* Breadcrumbs */}
+          <nav className="breadcrumb">
+  <span className="breadcrumb-link">
+    <Link to="/home">Home</Link>
+  </span>
+  <span className="separator">/</span>
+  <span className="current-page">Search Results</span>
+</nav>
+
+
           <div className="md:w-3/4">
             <h1 className="text-4xl font-medium text-white leading-tight" style={{ marginBottom: '20px' }}>
               Datasets
@@ -487,7 +501,7 @@ const Datasets = () => {
                   value={sortOption}
                   onChange={(e) => setSortOption(e.target.value)}
                   className="pl-4 pr-10 py-2 text-sm bg-white text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-500 transition-colors duration-200"
-                  style={{ paddingRight: '2.5rem' }} // Adjusted padding for chevron
+                  style={{ paddingRight: '2.5rem' }}
                 >
                   <option value="relevance">Relevance</option>
                   <option value="date">Date (Newest)</option>
@@ -513,7 +527,7 @@ const Datasets = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredResults.map((result) => (
+                  {currentResults.map((result) => (
                     <div
                       key={result.MtrCode}
                       onClick={() => handleDatasetClick(result.MtrCode)}
@@ -543,6 +557,21 @@ const Datasets = () => {
                       </div>
                     </div>
                   ))}
+                  {/* Pagination */}
+                  <nav className="ds_pagination" aria-label="Search result pages">
+                    <ul className="ds_pagination__list flex space-x-2">
+                      {Array.from({ length: Math.ceil(filteredResults.length / resultsPerPage) }).map((_, index) => (
+                        <li key={index} className="ds_pagination__item">
+                          <button
+                            onClick={() => paginate(index + 1)}
+                            className={`ds_pagination__link px-4 py-2 rounded-lg ${currentPage === index + 1 ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50'}`}
+                          >
+                            {index + 1}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
                 </div>
               )
             )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import config from '../config.js';
 
 const Organisations = () => {
   const [organisations, setOrganisations] = useState([]);
@@ -10,14 +11,13 @@ const Organisations = () => {
 
   useEffect(() => {
     document.title = "Emerald | Organisations";
-    
+
     const fetchOrganisations = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Modified API call based on error feedback
-        const response = await fetch('https://ws.cso.ie/public/api.jsonrpc', {
+
+        const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -25,29 +25,25 @@ const Organisations = () => {
           body: JSON.stringify({
             jsonrpc: '2.0',
             method: 'PxStat.System.Settings.Copyright_API.Read',
-            // Omitting CprCode parameter completely since it may be optional
-            // or expecting a different structure
             params: {},
             id: 193280692,
           }),
         });
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
           throw new Error(`API Error: ${data.error.message} - ${data.error.data || ''}`);
         }
-        
+
         if (data.result) {
           setOrganisations(data.result);
         } else {
-          // If no result, set empty array
           setOrganisations([]);
         }
       } catch (error) {
         console.error('Error fetching organisations:', error);
         setError(error.message || 'Failed to fetch organisations');
-        // Set sample data for development in case of error
         setOrganisations(sampleOrganisations);
       } finally {
         setLoading(false);
@@ -79,12 +75,11 @@ const Organisations = () => {
     return 0;
   });
 
-  const filteredOrganisations = sortedOrganisations.filter(org => 
+  const filteredOrganisations = sortedOrganisations.filter(org =>
     org.CprValue.toLowerCase().includes(searchTerm.toLowerCase()) ||
     org.CprCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Sample data to display if API fails
   const sampleOrganisations = [
     { CprCode: "CSO", CprValue: "Central Statistics Office", CprUrl: "https://www.cso.ie", MtrCount: 326 },
     { CprCode: "DEPT_EDU", CprValue: "Department of Education", CprUrl: "https://www.gov.ie/en/organisation/department-of-education/", MtrCount: 147 },
@@ -96,23 +91,23 @@ const Organisations = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-6xl mx-auto px-8 py-16">
-          <nav className="text-sm text-blue-100/80 flex items-center mb-8">
-            <span className="hover:text-white cursor-pointer transition-colors duration-200">
-              <a href="/home">Home</a>
+        <div className="relative max-w-6xl mx-auto px-8 py-16" style={{ paddingTop: '30px', paddingBottom: '30px' }}>
+          <nav className="breadcrumb">
+            <span className="breadcrumb-link">
+              <Link to="/home">Home</Link>
             </span>
-            <span className="mx-2 text-blue-100/40">/</span>
-            <span className="text-white">Organisations</span>
+            <span className="separator">/</span>
+            <span className="current-page">Organisations</span>
           </nav>
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-            <div className="md:w-3/4">
-              <h1 className="text-4xl font-medium text-white leading-tight">Organisations</h1>
-              <p className="mt-6 text-blue-100 text-lg leading-relaxed">
-                Browse organisations that contribute data to the Emerald Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
-              </p>
-            </div>
+          <div className="md:w-3/4">
+            <h1 className="text-4xl font-medium text-white leading-tight" style={{ marginBottom: '20px' }}>
+              Organisations
+            </h1>
+            <p className="text-lg text-gray-200 mb-4">
+              Browse organisations that contribute data to the Emerald Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
+            </p>
           </div>
         </div>
       </div>
@@ -161,8 +156,8 @@ const Organisations = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => handleSort('CprValue')}
                     >
@@ -175,8 +170,8 @@ const Organisations = () => {
                         )}
                       </div>
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => handleSort('CprCode')}
                     >
@@ -189,8 +184,8 @@ const Organisations = () => {
                         )}
                       </div>
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                       onClick={() => handleSort('MtrCount')}
                     >
@@ -253,7 +248,7 @@ const Organisations = () => {
           ) : (
             <div className="text-center py-12">
               <div className="text-gray-500">No organisations found matching your search criteria.</div>
-              <button 
+              <button
                 onClick={() => setSearchTerm('')}
                 className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
               >

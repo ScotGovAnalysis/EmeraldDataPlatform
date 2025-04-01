@@ -9,28 +9,25 @@ const About = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-800 to-blue-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-6xl mx-auto px-8 py-16">
-          <nav className="text-sm text-blue-100/80 flex items-center mb-8">
-            <span className="hover:text-white cursor-pointer transition-colors duration-200">
-              <a href="/home">Home</a>
+        <div className="relative max-w-6xl mx-auto px-8 py-16" style={{ paddingTop: '30px', paddingBottom: '30px' }}>
+          <nav className="breadcrumb">
+            <span className="breadcrumb-link">
+              <Link to="/home">Home</Link>
             </span>
-            <span className="mx-2 text-blue-100/40">/</span>
-            <span className="text-white">About</span>
+            <span className="separator">/</span>
+            <span className="current-page">About</span>
           </nav>
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8">
-            <div className="md:w-3/4">
-              <h1 className="text-4xl font-medium text-white leading-tight">About</h1>
-              <p className="mt-6 text-blue-100 text-lg leading-relaxed">
-              Emerald Open Data Portal
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-6">
-                <div className="flex items-center text-blue-100">
-                  <span className="text-sm">The Scottish Government’s Open Data team are running an Agile alpha to build prototypes to test different ideas and explore new approaches for statistics.gov.scot.</span>
-                </div>
-              </div>
-            </div>
+   
+              <div className="md:w-3/4">
+            <h1 className="text-4xl font-medium text-white leading-tight" style={{ marginBottom: '20px' }}>
+              About Emerald Open Data Portal
+            </h1>
+            <p className="text-lg text-gray-200 mb-4">
+            The Scottish Government’s Open Data team are running an Agile alpha to build prototypes to test different ideas and explore new approaches for statistics.gov.scot.
+            </p>
+
           </div>
         </div>
       </div>

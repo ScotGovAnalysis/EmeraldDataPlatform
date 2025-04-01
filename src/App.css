@@ -62,3 +62,25 @@
   background: rgba(0, 0, 0, 0.5);
   z-index: 999;
 }
+
+.breadcrumb {
+  font-size: 0.875rem; /* Equivalent to text-sm */
+  color: white;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem; /* Equivalent to mb-4 */
+}
+
+.breadcrumb a {
+  color: white;
+  transition: color 0.2s ease-in-out; /* Equivalent to transition-colors duration-200 */
+}
+
+.breadcrumb a:hover {
+  color: #e0e0e0; /* Equivalent to hover:text-gray-300 */
+}
+
+.breadcrumb span.separator {
+  color: rgba(255, 255, 255, 0.6); /* Equivalent to text-white/60 */
+  margin: 0 0.5rem; /* Equivalent to mx-2 */
+}
