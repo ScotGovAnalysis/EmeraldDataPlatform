@@ -1,31 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navigation from './Navigation';
 import '../App.css';
-import '@scottish-government/design-system/dist/css/design-system.min.css';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showHeader, setShowHeader] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
   const navigate = useNavigate();
+  const location = useLocation();
+  const menuButtonRef = useRef(null);
+  const menuCheckboxRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
       if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        // Scroll down past 100px threshold
         setShowHeader(false);
       } else if (currentScrollY < lastScrollY.current) {
-        // Scroll up
         setShowHeader(true);
       }
 
       lastScrollY.current = currentScrollY;
     };
 
-    // Throttle scroll handler
     let throttleTimeout;
     const throttledHandleScroll = () => {
       if (!throttleTimeout) {
@@ -50,78 +50,130 @@ const Header = () => {
       document.documentElement.style.setProperty('--header-height', `${height}px`);
     }
   }, []);
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // Navigate to results page with search query
-      navigate(`/datasets?q=${encodeURIComponent(searchQuery.trim())}`);
-      // Optional: Clear the search input after submission
+      navigate(`/results?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen((prev) => !prev);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleMenu();
+    }
+  };
+
+  useEffect(() => {
+    if (menuCheckboxRef.current) {
+      menuCheckboxRef.current.checked = isMenuOpen;
+    }
+  }, [isMenuOpen]);
+
   return (
-    <header 
-      className={`ds_site-header ${!showHeader ? 'header-hidden' : ''}`} 
-      role="banner"
-    >      <div className="ds_wrapper">
+    <header className={`ds_site-header ds_site-header--gradient ${!showHeader ? 'header-hidden' : ''}`} role="banner">
+      <div className="ds_skip-links">
+        <ul className="ds_skip-links__list">
+          <li className="ds_skip-links__item">
+            <a className="ds_skip-links__link" href="#main-content">Skip to main content</a>
+          </li>
+        </ul>
+      </div>
+      <div className="ds_wrapper">
         <div className="ds_site-header__content">
           <div className="ds_site-branding">
             <a className="ds_site-branding__logo ds_site-branding__link" href="/">
-<img
-  width="300"
-  height="58"
-  className="ds_site-branding__logo-image"
-  src="/assets/images/logos/scottish-government.svg"
-  alt="The Scottish Government"
-/>
+              <img
+                className="ds_site-branding__logo-image"
+                src="/assets/images/logos/scottish-government.svg"
+                alt="Scottish Government"
+              />
             </a>
             <div className="ds_site-branding__title">Emerald Open Data Portal</div>
           </div>
+
           <div className="ds_site-header__controls">
-  <label aria-controls="mobile-navigation" className="ds_site-header__control js-toggle-menu" htmlFor="menu">
-    <span className="ds_site-header__control-text">Menu</span>
-    <svg className="ds_icon ds_site-header__control-icon" aria-hidden="true" role="img">
-      <use href="/assets/images/icons/icons.stack.svg#menu"></use>
-    </svg>
-    <svg className="ds_icon ds_site-header__control-icon ds_site-header__control-icon--active-icon" aria-hidden="true" role="img">
-      <use href="/assets/images/icons/icons.stack.svg#close"></use>
-    </svg>
-  </label>
-</div>
-          <input className="ds_site-navigation__toggle" id="menu" type="checkbox" />
-          <Navigation />
-          <div className="ds_site-header__search">
-            <div className="ds_site-search">
-              <form onSubmit={handleSubmit} role="search" className="ds_site-search__form" method="GET">
-                <label className="ds_label visually-hidden" htmlFor="site-search">Search</label>
-                <div className="ds_input__wrapper ds_input__wrapper--has-icon">
-                  <input
-                    className="ds_input ds_site-search__input"
-                    id="site-search"
-                    name="q"
-                    placeholder="Search"
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <button 
-                    type="submit" 
-                    className="ds_button ds_button--icon-only js-site-search-button"
-                    onClick={handleSubmit}
-                  >
-                    <span className="visually-hidden">Search</span>
-                    <svg className="ds_icon ds_icon--24" aria-hidden="true" role="img" viewBox="0 0 24 24">
-                      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    </svg>
-                  </button>
-                </div>
-              </form>
-            </div>
+            <label
+              aria-controls="mobile-navigation"
+              className="ds_site-header__control js-toggle-menu"
+              htmlFor="menu"
+              tabIndex="0"
+              role="button"
+              aria-expanded={isMenuOpen}
+              ref={menuButtonRef}
+              onKeyDown={handleKeyDown}
+            >
+              <span className="ds_site-header__control-text">Menu</span>
+              <svg className="ds_icon ds_site-header__control-icon" aria-hidden="true" role="img">
+                <use href="/assets/images/icons/icons.stack.svg#menu"></use>
+              </svg>
+              <svg
+                className="ds_icon ds_site-header__control-icon ds_site-header__control-icon--active-icon"
+                aria-hidden="true"
+                role="img"
+              >
+                <use href="/assets/images/icons/icons.stack.svg#close"></use>
+              </svg>
+            </label>
+          </div>
+
+          <input
+            className="ds_site-navigation__toggle"
+            id="menu"
+            type="checkbox"
+            ref={menuCheckboxRef}
+            onChange={toggleMenu}
+            aria-hidden="true"
+          />
+
+          <nav
+            id="mobile-navigation"
+            className={`ds_site-navigation ds_site-navigation--mobile ${isMenuOpen ? 'ds_site-navigation--open' : ''}`}
+            data-module="ds-mobile-navigation-menu"
+            aria-hidden={!isMenuOpen}
+          >
+            <Navigation currentPath={location.pathname} />
+          </nav>
+
+          <div className="ds_site-search ds_site-header__search" data-module="ds-site-search">
+            <form onSubmit={handleSubmit} role="search" className="ds_site-search__form">
+              <label className="ds_label visually-hidden" htmlFor="site-search">Search</label>
+              <div className="ds_input__wrapper ds_input__wrapper--has-icon">
+                <input
+                  className="ds_input ds_site-search__input"
+                  id="site-search"
+                  name="q"
+                  placeholder="Search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button type="submit" className="ds_button js-site-search-button">
+                  <span className="visually-hidden">Search</span>
+                  <svg className="ds_icon" aria-hidden="true" role="img">
+                    <use href="/assets/images/icons/icons.stack.svg#search"></use>
+                  </svg>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
+
+      <div className="ds_site-header__navigation">
+        <div className="ds_wrapper">
+          <nav className="ds_site-navigation">
+            <Navigation currentPath={location.pathname} />
+          </nav>
+        </div>
+      </div>
+
       <div className="ds_phase-banner">
         <div className="ds_wrapper">
           <p className="ds_phase-banner__content">

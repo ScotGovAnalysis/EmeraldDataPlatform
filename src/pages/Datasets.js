@@ -20,9 +20,11 @@ const Datasets = () => {
   const [organizationOptions, setOrganizationOptions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(10);
+  const [searchInput, setSearchInput] = useState(searchQuery || '');
 
   useEffect(() => {
-    document.title = "Cobalt | Datasets";
+    document.title = 'Cobalt | Datasets';
+    setSearchInput(searchQuery || '');
     if (searchQuery) {
       fetchSearchResults(searchQuery);
     } else {
@@ -45,15 +47,15 @@ const Datasets = () => {
       });
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      const datasets = data.result.link.item.map((item) => ({
-        MtrCode: item.extension.matrix,
-        MtrTitle: item.label,
-        RlsLiveDatetimeFrom: item.updated,
-        CprValue: item.extension.copyright.name,
+      const datasets = data.result?.link?.item?.map((item) => ({
+        MtrCode: item.extension?.matrix || 'unknown',
+        MtrTitle: item.label || 'Untitled Dataset',
+        RlsLiveDatetimeFrom: item.updated || new Date().toISOString(),
+        CprValue: item.extension?.copyright?.name || 'Unknown',
         description: item.description || 'No description available',
-      }));
+      })) || [];
       setResults(datasets);
-      setOrganizationOptions([...new Set(datasets.map((item) => item.CprValue))]);
+      setOrganizationOptions([...new Set(datasets.map((item) => item.CprValue).filter(Boolean))]);
       setLoading(false);
     } catch (error) {
       setError(error);
@@ -76,8 +78,17 @@ const Datasets = () => {
       });
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      setResults(data.result);
-      setOrganizationOptions([...new Set(data.result.map((item) => item.CprValue))]);
+      const searchResults = Array.isArray(data.result)
+        ? data.result.map((item) => ({
+            MtrCode: item.MtrCode || 'unknown',
+            MtrTitle: item.MtrTitle || 'Untitled Dataset',
+            RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
+            CprValue: item.CprValue || 'Unknown',
+            description: item.description || 'No description available',
+          }))
+        : [];
+      setResults(searchResults);
+      setOrganizationOptions([...new Set(searchResults.map((item) => item.CprValue).filter(Boolean))]);
       setLoading(false);
     } catch (error) {
       setError(error);
@@ -135,6 +146,15 @@ const Datasets = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      navigate(`/datasets?q=${encodeURIComponent(searchInput.trim())}`);
+    } else {
+      navigate('/datasets');
+    }
+  };
+
   if (loading) {
     return (
       <div className="ds_page__middle">
@@ -168,34 +188,47 @@ const Datasets = () => {
               </h1>
             </header>
           </div>
-          <div className="ds_layout__content"></div>
+          <div className="ds_layout__content">
+            <div className="ds_site-search">
+              <form
+                action="/datasets"
+                role="search"
+                className="ds_site-search__form"
+                method="GET"
+                onSubmit={handleSearchSubmit}
+              >
+                <label className="ds_label visually-hidden" htmlFor="site-search">
+                  Search
+                </label>
+                <div className="ds_input__wrapper ds_input__wrapper--has-icon">
+                  <input
+                    name="q"
+                    required
+                    id="site-search"
+                    className="ds_input ds_site-search__input"
+                    type="search"
+                    placeholder="Search datasets..."
+                    autoComplete="off"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                  />
+                  <button type="submit" className="ds_button js-site-search-button">
+                    <span className="visually-hidden">Search</span>
+                    <svg
+                      className="ds_icon ds_icon--24"
+                      aria-hidden="true"
+                      role="img"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
           <div className="ds_layout__sidebar">
             <div className="ds_search-filters">
-              <h3 className="ds_search-filters__title ds_h4">Search</h3>
-              <div className="ds_site-search">
-                <form action="/results" role="search" className="ds_site-search__form" method="GET">
-                  <label className="ds_label visually-hidden" htmlFor="site-search">Search</label>
-                  <div className="ds_input__wrapper ds_input__wrapper--has-icon">
-                    <input
-                      name="q"
-                      required
-                      id="site-search"
-                      className="ds_input ds_site-search__input"
-                      type="search"
-                      placeholder="Search"
-                      autoComplete="off"
-                      value={searchQuery || ''}
-                      onChange={(e) => navigate(`/datasets?q=${encodeURIComponent(e.target.value)}`)}
-                    />
-                    <button type="submit" className="ds_button js-site-search-button">
-                      <span className="visually-hidden">Search</span>
-                      <svg className="ds_icon ds_icon--24" aria-hidden="true" role="img" viewBox="0 0 24 24">
-                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </form>
-              </div>
               <div className="ds_details ds_no-margin" data-module="ds-details">
                 <input id="filters-toggle" type="checkbox" className="ds_details__toggle visually-hidden" />
                 <label htmlFor="filters-toggle" className="ds_details__summary">
@@ -204,7 +237,9 @@ const Datasets = () => {
                 <div className="ds_skip-links ds_skip-links--static">
                   <ul className="ds_skip-links__list">
                     <li className="ds_skip-links__item">
-                      <a className="ds_skip-links__link" href="#search-results">Skip to results</a>
+                      <a className="ds_skip-links__link" href="#search-results">
+                        Skip to results
+                      </a>
                     </li>
                   </ul>
                 </div>
@@ -217,9 +252,10 @@ const Datasets = () => {
                           type="checkbox"
                           className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
                           id="organization-panel"
+                          aria-labelledby="organization-panel-heading"
                         />
                         <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
-                          <h3 className="ds_accordion-item__title">
+                          <h3 id="organization-panel-heading" className="ds_accordion-item__title">
                             Organisation
                             {selectedOrganizations.length > 0 && (
                               <div className="ds_search-filters__filter-count">
@@ -234,21 +270,23 @@ const Datasets = () => {
                         </div>
                         <div className="ds_accordion-item__body">
                           <fieldset>
-                            <legend className="visually-hidden">Select which organizations you would like to see</legend>
+                            <legend className="visually-hidden">
+                              Select which organizations you would like to see
+                            </legend>
                             <div className="ds_search-filters__scrollable">
                               <div className="ds_search-filters__checkboxes">
                                 {getOrganizationCounts().map((org) => (
                                   <div key={org.name} className="ds_checkbox ds_checkbox--small">
                                     <input
                                       id={`org-${org.name}`}
+                                      name="organisations"
                                       type="checkbox"
                                       className="ds_checkbox__input"
                                       checked={selectedOrganizations.includes(org.name)}
                                       onChange={() => handleOrganizationFilter(org.name)}
                                     />
                                     <label htmlFor={`org-${org.name}`} className="ds_checkbox__label">
-                                      {org.name}
-                                      <span className="badge ml-2"> ({org.count})</span>
+                                      {org.name} <span className="badge ml-2">({org.count})</span>
                                     </label>
                                   </div>
                                 ))}
@@ -262,10 +300,11 @@ const Datasets = () => {
                           type="checkbox"
                           className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
                           id="date-panel"
+                          aria-labelledby="date-panel-heading"
                         />
                         <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
-                          <h3 className="ds_accordion-item__title">
-                            Date Range
+                          <h3 id="date-panel-heading" className="ds_accordion-item__title">
+                            Updated
                             {(selectedDateRange[0] || selectedDateRange[1]) && (
                               <div className="ds_search-filters__filter-count">
                                 (Date selected)
@@ -278,26 +317,46 @@ const Datasets = () => {
                           </label>
                         </div>
                         <div className="ds_accordion-item__body">
-                          <fieldset>
-                            <legend className="visually-hidden">Select date range</legend>
-                            <div className="ds_search-filters__scrollable">
-                              <div className="ds_search-filters__checkboxes">
-                                <label className="ds_label" htmlFor="date-from">From</label>
-                                <input
-                                  id="date-from"
-                                  type="date"
-                                  className="ds_input"
-                                  value={selectedDateRange[0] || ''}
-                                  onChange={(e) => handleDateRangeChange(0, e.target.value)}
-                                />
-                                <label className="ds_label" htmlFor="date-to">To</label>
-                                <input
-                                  id="date-to"
-                                  type="date"
-                                  className="ds_input"
-                                  value={selectedDateRange[1] || ''}
-                                  onChange={(e) => handleDateRangeChange(1, e.target.value)}
-                                />
+                          <fieldset id="filter-date-range" className="filters__fieldset">
+                            <legend className="visually-hidden">Filter by date</legend>
+                            <div className="ds_question">
+                              <div data-module="ds-datepicker" className="ds_datepicker">
+                                <label className="ds_label ds_no-margin--bottom" htmlFor="date-from">
+                                  Updated after
+                                </label>
+                                <p className="ds_hint-text ds_!_margin-bottom--1">
+                                  For example, 21/01/2022
+                                </p>
+                                <div className="ds_input__wrapper">
+                                  <input
+                                    name="begin"
+                                    id="date-from"
+                                    type="date"
+                                    className="ds_input ds_input--fixed-10"
+                                    value={selectedDateRange[0] || ''}
+                                    onChange={(e) => handleDateRangeChange(0, e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="ds_question">
+                              <div data-module="ds-datepicker" className="ds_datepicker">
+                                <label className="ds_label ds_no-margin--bottom" htmlFor="date-to">
+                                  Updated before
+                                </label>
+                                <p className="ds_hint-text ds_!_margin-bottom--1">
+                                  For example, 21/01/2022
+                                </p>
+                                <div className="ds_input__wrapper">
+                                  <input
+                                    name="end"
+                                    id="date-to"
+                                    type="date"
+                                    className="ds_input ds_input--fixed-10"
+                                    value={selectedDateRange[1] || ''}
+                                    onChange={(e) => handleDateRangeChange(1, e.target.value)}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </fieldset>
@@ -305,14 +364,10 @@ const Datasets = () => {
                       </div>
                     </div>
                     <button
-                      type="button"
+                      type="submit"
                       className="ds_button ds_button--primary ds_button--small ds_button--max ds_no-margin"
-                      onClick={() => {
-                        setSelectedOrganizations([]);
-                        setSelectedDateRange([null, null]);
-                      }}
                     >
-                      Clear all filters
+                      Apply filter
                     </button>
                   </form>
                 </div>
@@ -331,18 +386,22 @@ const Datasets = () => {
                 <div className="ds_skip-links ds_skip-links--static">
                   <ul className="ds_skip-links__list">
                     <li className="ds_skip-links__item">
-                      <a className="ds_skip-links__link" href="#search-results">Skip to results</a>
+                      <a className="ds_skip-links__link" href="#search-results">
+                        Skip to results
+                      </a>
                     </li>
                   </ul>
                 </div>
                 <div className="ds_facets">
                   <p className="visually-hidden">
-                    There are {selectedOrganizations.length + (selectedDateRange[0] || selectedDateRange[1] ? 1 : 0)} search filters applied
+                    There are{' '}
+                    {selectedOrganizations.length + (selectedDateRange[0] || selectedDateRange[1] ? 1 : 0)}{' '}
+                    search filters applied
                   </p>
                   <dl className="ds_facets__list">
                     {selectedOrganizations.length > 0 && (
                       <div className="ds_facet-group">
-                        <dt className="ds_facet__group-title">Organization:</dt>
+                        <dt className="ds_facet__group-title">Organisation:</dt>
                         {selectedOrganizations.map((org) => (
                           <dd key={org} className="ds_facet-wrapper">
                             <span className="ds_facet">
@@ -353,7 +412,12 @@ const Datasets = () => {
                                 className="ds_facet__button"
                                 onClick={() => handleOrganizationFilter(org)}
                               >
-                                <svg className="ds_facet__button-icon" aria-hidden="true" role="img" focusable="false">
+                                <svg
+                                  className="ds_facet__button-icon"
+                                  aria-hidden="true"
+                                  role="img"
+                                  focusable="false"
+                                >
                                   <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
                                 </svg>
                               </button>
@@ -364,22 +428,52 @@ const Datasets = () => {
                     )}
                     {(selectedDateRange[0] || selectedDateRange[1]) && (
                       <div className="ds_facet-group">
-                        <dt className="ds_facet__group-title">Date Range:</dt>
-                        <dd className="ds_facet-wrapper">
-                          <span className="ds_facet">
-                            {selectedDateRange[0] || 'Any'} - {selectedDateRange[1] || 'Any'}
-                            <button
-                              type="button"
-                              aria-label="Remove date range filter"
-                              className="ds_facet__button"
-                              onClick={() => setSelectedDateRange([null, null])}
-                            >
-                              <svg className="ds_facet__button-icon" aria-hidden="true" role="img" focusable="false">
-                                <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
-                              </svg>
-                            </button>
-                          </span>
-                        </dd>
+                        <dt className="ds_facet__group-title">Updated between:</dt>
+                        {selectedDateRange[0] && (
+                          <dd className="ds_facet-wrapper">
+                            <span className="ds_facet">
+                              {new Date(selectedDateRange[0]).toLocaleDateString('en-GB')}
+                              <button
+                                type="button"
+                                aria-label={`Remove 'updated after ${selectedDateRange[0]}' filter`}
+                                className="ds_facet__button"
+                                onClick={() => handleDateRangeChange(0, null)}
+                              >
+                                <svg
+                                  className="ds_facet__button-icon"
+                                  aria-hidden="true"
+                                  role="img"
+                                  focusable="false"
+                                >
+                                  <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
+                                </svg>
+                              </button>
+                            </span>
+                          </dd>
+                        )}
+                        {selectedDateRange[1] && (
+                          <dd className="ds_facet-wrapper">
+                            {selectedDateRange[0] && ' and '}
+                            <span className="ds_facet">
+                              {new Date(selectedDateRange[1]).toLocaleDateString('en-GB')}
+                              <button
+                                type="button"
+                                aria-label={`Remove 'updated before ${selectedDateRange[1]}' filter`}
+                                className="ds_facet__button"
+                                onClick={() => handleDateRangeChange(1, null)}
+                              >
+                                <svg
+                                  className="ds_facet__button-icon"
+                                  aria-hidden="true"
+                                  role="img"
+                                  focusable="false"
+                                >
+                                  <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
+                                </svg>
+                              </button>
+                            </span>
+                          </dd>
+                        )}
                       </div>
                     )}
                   </dl>
@@ -392,14 +486,21 @@ const Datasets = () => {
                       }}
                     >
                       Clear all filters
-                      <svg className="ds_facet__button-icon" aria-hidden="true" role="img" focusable="false">
+                      <svg
+                        className="ds_facet__button-icon"
+                        aria-hidden="true"
+                        role="img"
+                        focusable="false"
+                      >
                         <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
                       </svg>
                     </button>
                   )}
                 </div>
                 <div className="ds_sort-options">
-                  <label className="ds_label" htmlFor="sort-by">Sort by</label>
+                  <label className="ds_label" htmlFor="sort-by">
+                    Sort by
+                  </label>
                   <span className={`ds_select-wrapper ${styles.selectWrapper}`}>
                     <select
                       className={`ds_select ${styles.select}`}
@@ -415,7 +516,11 @@ const Datasets = () => {
                   </span>
                 </div>
               </div>
-              <ol className="ds_search-results__list" data-total={filteredResults.length} start={indexOfFirstResult + 1}>
+              <ol
+                className="ds_search-results__list"
+                data-total={filteredResults.length}
+                start={indexOfFirstResult + 1}
+              >
                 {currentResults.map((result) => (
                   <li key={result.MtrCode} className="ds_search-result">
                     <h3 className="ds_search-result__title">
@@ -430,13 +535,17 @@ const Datasets = () => {
                       </Link>
                     </h3>
                     <p className="ds_search-result__summary">
-                      {result.description.length > 150
-                        ? result.description.substring(0, 150) + '...'
-                        : result.description}
+                      {(() => {
+                        const text = result.description || 'No description available';
+                        const words = text.split(' ');
+                        return words.length > 65
+                          ? words.slice(0, 65).join(' ') + '...'
+                          : text;
+                      })()}
                     </p>
                     <dl className="ds_search-result__metadata ds_metadata ds_metadata--inline">
                       <div className="ds_metadata__item">
-                        <dt className="ds_metadata__key">Organization</dt>
+                        <dt className="ds_metadata__key">Organisation</dt>
                         <dd className="ds_metadata__value">{result.CprValue || 'Unknown'}</dd>
                       </div>
                       <div className="ds_metadata__item">
@@ -460,17 +569,22 @@ const Datasets = () => {
                       <span className="ds_pagination__link-label">Previous</span>
                     </button>
                   </li>
-                  {Array.from({ length: Math.ceil(filteredResults.length / resultsPerPage) }, (_, i) => (
-                    <li key={i + 1} className="ds_pagination__item">
-                      <button
-                        aria-label={`Page ${i + 1}`}
-                        className={`ds_pagination__link ${currentPage === i + 1 ? 'ds_current' : ''}`}
-                        onClick={() => paginate(i + 1)}
-                      >
-                        <span className="ds_pagination__link-label">{i + 1}</span>
-                      </button>
-                    </li>
-                  ))}
+                  {Array.from(
+                    { length: Math.ceil(filteredResults.length / resultsPerPage) },
+                    (_, i) => (
+                      <li key={i + 1} className="ds_pagination__item">
+                        <button
+                          aria-label={`Page ${i + 1}`}
+                          className={`ds_pagination__link ${
+                            currentPage === i + 1 ? 'ds_current' : ''
+                          }`}
+                          onClick={() => paginate(i + 1)}
+                        >
+                          <span className="ds_pagination__link-label">{i + 1}</span>
+                        </button>
+                      </li>
+                    )
+                  )}
                   <li className="ds_pagination__item">
                     <button
                       className="ds_pagination__link"

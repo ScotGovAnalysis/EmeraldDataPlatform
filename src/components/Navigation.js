@@ -1,11 +1,9 @@
 import React from 'react';
 
 const navItems = [
-  { href: '/home', label: 'Home' },
   { href: '/datasets', label: 'Datasets' },
   { href: '/organisations', label: 'Organisations' },
   { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
   { href: '/help', label: 'Help' }
 ];
 

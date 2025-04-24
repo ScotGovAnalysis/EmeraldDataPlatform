@@ -1,19 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Download, FileText, Table, Calendar, Clock, ChevronDown, Check, X, Search, Eye } from 'lucide-react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
+import { Share2, Download, FileText, Table, Search, Eye, Check, ChevronDown } from 'lucide-react';
+import '@scottish-government/design-system/dist/css/design-system.min.css';
+import { format, isValid } from 'date-fns';
+import '../index.css';
+import config from '../config';
+import styles from '../styles/Design_Style.module.css';
+import BackToTop from '../components/BackToTop';
+import { PropagateLoader } from 'react-spinners';
 import APIModal from '../modals/APIModal';
 import DataViewerModal from '../modals/DataViewerModal';
 import ChartConfigurationModal from '../modals/ChartConfigurationModal';
 import ChartRenderingModal from '../modals/ChartRenderingModal';
-import config from '../config.js';
 
 const Dataset = () => {
   const { id } = useParams();
+  const location = useLocation();
   const [dataset, setDataset] = useState(null);
   const [selectedDimensions, setSelectedDimensions] = useState({});
   const [openDimension, setOpenDimension] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [tableData, setTableData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [chartConfig, setChartConfig] = useState({
     type: 'bar',
     dimensions: [],
@@ -34,36 +42,52 @@ const Dataset = () => {
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [isChartConfigOpen, setIsChartConfigOpen] = useState(false);
   const [isChartRenderOpen, setIsChartRenderOpen] = useState(false);
+  const isFromResultsPage = location.state?.fromResults || false;
+  const searchQueryParam = location.state?.searchQuery || '';
 
   useEffect(() => {
     const fetchDataset = async () => {
-      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'PxStat.Data.Cube_API.ReadMetadata',
-          params: {
-            matrix: id,
-            format: { type: 'JSON-stat', version: '2.0' },
-            language: 'en',
-            m2m: false,
-          },
-          id: 193280692,
-        }),
-      });
-      const data = await response.json();
-      setDataset(data.result);
+      try {
+        const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'PxStat.Data.Cube_API.ReadMetadata',
+            params: {
+              matrix: id,
+              format: { type: 'JSON-stat', version: '2.0' },
+              language: 'en',
+              m2m: false,
+            },
+            id: 193280692,
+          }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch dataset details');
+        const data = await response.json();
+        setDataset(data.result);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchDataset();
-    document.title = 'Emerald | Dataset';
   }, [id]);
+
+  useEffect(() => {
+    if (dataset && dataset.label) {
+      document.title = `Cobalt | ${dataset.label}`;
+    } else {
+      document.title = 'Cobalt | Dataset';
+    }
+  }, [dataset]);
 
   const handleViewClick = async () => {
     try {
       const dimensions = {};
-      Object.keys(selectedDimensions).forEach(key => {
+      Object.keys(selectedDimensions).forEach((key) => {
         if (selectedDimensions[key]?.length > 0) {
           dimensions[key] = { category: { index: selectedDimensions[key] } };
         }
@@ -101,7 +125,6 @@ const Dataset = () => {
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      // Parse the JSON-stat response
       const parsedData = parseJsonStat(data.result);
       setTableData(parsedData);
       setError(null);
@@ -115,16 +138,14 @@ const Dataset = () => {
     const { dimension, value, size, id } = jsonStat;
 
     if (!dimension || !value || !size || !id) {
-      console.error("Invalid JSON-stat structure");
+      console.error('Invalid JSON-stat structure');
       return [];
     }
 
-    // Function to calculate the position in the value array
     const getPosition = (indices) => {
       let position = 0;
       let multiplier = 1;
 
-      // Process indices in reverse order (matches JSON-stat convention)
       for (let i = indices.length - 1; i >= 0; i--) {
         position += indices[i] * multiplier;
         multiplier *= size[i];
@@ -133,27 +154,22 @@ const Dataset = () => {
       return position;
     };
 
-    // Generate all possible combinations of indices
     const generateRows = (dimensionIndices = [], currentDimension = 0) => {
-      // Base case: if we've processed all dimensions, create a row
       if (currentDimension >= id.length) {
         const position = getPosition(dimensionIndices);
         const row = {};
 
-        // Map dimension IDs to their labels
         id.forEach((dimId, index) => {
           const dim = dimension[dimId];
           const categoryIndex = dim.category.index[dimensionIndices[index]];
           row[dimId] = dim.category.label[categoryIndex];
         });
 
-        // Add the value (if it exists at this position)
-        row["Value"] = position < value.length ? value[position] : null;
+        row['Value'] = position < value.length ? value[position] : null;
 
         return [row];
       }
 
-      // Recursive case: iterate through all values of the current dimension
       const dimId = id[currentDimension];
       const dim = dimension[dimId];
       const results = [];
@@ -168,10 +184,7 @@ const Dataset = () => {
       return results;
     };
 
-    // Generate all rows
     const tableData = generateRows();
-
-    console.log("Parsed Table Data:", tableData);
     return tableData;
   };
 
@@ -192,42 +205,32 @@ const Dataset = () => {
     setIsChartRenderOpen(true);
   };
 
-  if (!dataset) {
-    return (
-      <div className="ds_wrapper">
-        <div className="ds_loading-spinner">Loading...</div>
-      </div>
-    );
-  }
-
-  const { label, dimension, extension, updated, note, link } = dataset;
-
   const handleDimensionToggle = (dimensionKey) => {
     setOpenDimension(openDimension === dimensionKey ? null : dimensionKey);
     setSearchQuery('');
   };
 
   const handleDimensionSelect = (dimensionKey, value, isSelected) => {
-    setSelectedDimensions(prev => {
+    setSelectedDimensions((prev) => {
       const currentSelected = prev[dimensionKey] || [];
       return {
         ...prev,
         [dimensionKey]: isSelected
           ? [...currentSelected, value]
-          : currentSelected.filter(v => v !== value),
+          : currentSelected.filter((v) => v !== value),
       };
     });
   };
 
   const handleSelectAll = (dimensionKey, categories) => {
-    setSelectedDimensions(prev => ({
+    setSelectedDimensions((prev) => ({
       ...prev,
       [dimensionKey]: Object.keys(categories),
     }));
   };
 
   const handleClearAll = (dimensionKey) => {
-    setSelectedDimensions(prev => ({ ...prev, [dimensionKey]: [] }));
+    setSelectedDimensions((prev) => ({ ...prev, [dimensionKey]: [] }));
   };
 
   const filteredCategories = (categories) => {
@@ -236,154 +239,410 @@ const Dataset = () => {
     );
   };
 
-  return (
-    <div className="ds_wrapper">
-      <main id="main-content" className="ds_layout ds_layout--article">
-        <div className="ds_layout__header">
-          <header className="ds_page-header">
-            <nav className="ds_breadcrumb">
-              <span className="ds_breadcrumb-link">
-                <Link to="/home">Home</Link>
-              </span>
-              <span className="ds_breadcrumb-separator">/</span>
-              <span className="ds_breadcrumb-link">
-                <Link to="/datasets">Datasets</Link>
-              </span>
-              <span className="ds_breadcrumb-separator">/</span>
-              <span className="ds_breadcrumb-current">{label}</span>
-            </nav>
-            <h1 className="ds_page-header__title">{label}</h1>
-            <dl className="ds_page-header__metadata ds_metadata">
-              <div className="ds_metadata__item">
-                <dt className="ds_metadata__key">Published</dt>
-                <dd className="ds_metadata__value">{new Date(updated).toLocaleDateString()}</dd>
-              </div>
-              <div className="ds_metadata__item">
-                <dt className="ds_metadata__key">Updated</dt>
-                <dd className="ds_metadata__value">{new Date(updated).toLocaleDateString()}</dd>
-              </div>
-            </dl>
-          </header>
-        </div>
+  const getThumbnailImage = (type) => {
+    switch (type.toLowerCase()) {
+      case 'text/csv':
+        return '/documents/csv.svg';
+      case 'application/json':
+        return '/documents/json.svg';
+      case 'application/base64':
+        return '/documents/excel.svg';
+      case 'application/octet-stream':
+        return '/documents/px.svg';
+      default:
+        return '/documents/generic.svg';
+    }
+  };
 
-        <div className="ds_layout__content">
-          <div className="ds_section">
-            <h2 className="ds_heading-l">Description</h2>
-            <div className="ds_body">
-              <p>
-                {note?.[1]?.replace(/\[url=(.*?)\](.*?)\[\/url\]/g, '[$2]($1)') || 'No additional notes available'}
-              </p>
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return isValid(date) ? format(date, 'dd MMMM yyyy') : 'Invalid date';
+  };
+
+  if (loading) {
+    return (
+      <div className="ds_page__middle">
+        <div className="ds_wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <PropagateLoader color="#0065bd" loading={true} speedMultiplier={1} />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ds_page__middle">
+        <div className="ds_wrapper">
+          <div className="ds_error">
+            <p>Error: {error.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dataset) {
+    return (
+      <div className="ds_page__middle">
+        <div className="ds_wrapper">
+          <div className="ds_error">
+            <p>No dataset found</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { label, dimension, extension, updated, note, link } = dataset;
+
+  return (
+    <div className="ds_page__middle">
+      <div className="ds_wrapper">
+        <main className="ds_layout ds_layout--search-results--filters">
+          <div className="ds_layout__header w-full">
+            <nav aria-label="Breadcrumb">
+              <ol className="ds_breadcrumbs">
+                <li className={styles.ds_breadcrumbs__item}>
+                  <Link className="ds_breadcrumbs__link" to="/">Home</Link>
+                </li>
+                {isFromResultsPage ? (
+                  <>
+                    <li className={styles.ds_breadcrumbs__item}>
+                      <Link className="ds_breadcrumbs__link" to={`/datasets?q=${encodeURIComponent(searchQueryParam)}`}>Results</Link>
+                    </li>
+                    <li className={styles.ds_breadcrumbs__item}>
+                      <span className="ds_breadcrumbs__current">Dataset: {label}</span>
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li className={styles.ds_breadcrumbs__item}>
+                      <Link className="ds_breadcrumbs__link" to="/datasets">Datasets</Link>
+                    </li>
+                    <li className={styles.ds_breadcrumbs__item}>
+                      <span className="ds_breadcrumbs__current">{label}</span>
+                    </li>
+                  </>
+                )}
+              </ol>
+            </nav>
+            <header className="gov_layout gov_layout--publication-header w-full">
+              <div className="gov_layout__title w-full">
+                <h1 className="ds_page-header__title break-words whitespace-pre-wrap">
+                  {label}
+                </h1>
+              </div>
+            </header>
+          </div>
+
+          <div className="ds_layout__sidebar">
+            <div className="ds_metadata__panel">
+              <hr />
+              <h3 className="ds_metadata__panel-title">Metadata</h3>
+              <dl className="ds_metadata">
+                <div className="ds_metadata__item">
+                  <dt className="ds_metadata__key">Organisation</dt>
+                  <dd className="ds_metadata__value">{extension.copyright?.name || 'Not specified'}</dd>
+                </div>
+                <div className="ds_metadata__item">
+                  <dt className="ds_metadata__key">Published</dt>
+                  <dd className="ds_metadata__value">{formatDate(updated)}</dd>
+                </div>
+                <div className="ds_metadata__item">
+                  <dt className="ds_metadata__key">Last Updated</dt>
+                  <dd className="ds_metadata__value">{formatDate(updated)}</dd>
+                </div>
+                <div className="ds_metadata__item">
+                  <dt className="ds_metadata__key">Contact</dt>
+                  <dd className="ds_metadata__value">
+                    {extension.contact?.email ? (
+                      <a href={`mailto:${extension.contact.email}`} className="ds_link">
+                        {extension.contact.email}
+                      </a>
+                    ) : (
+                      'Not specified'
+                    )}
+                  </dd>
+                </div>
+                <div className="ds_metadata__item">
+                  <dt className="ds_metadata__key">Subject</dt>
+                  <dd className="ds_metadata__value">{extension.subject?.value || 'Not specified'}</dd>
+                </div>
+                <div className="ds_metadata__item">
+                  <dt className="ds_metadata__key">Product</dt>
+                  <dd className="ds_metadata__value">{extension.product?.value || 'Not specified'}</dd>
+                </div>
+              </dl>
+              <hr />
+              <h3 className="ds_metadata__panel-title">Downloads</h3>
+              {link?.alternate?.map((item, index) => (
+                <a
+                  key={index}
+                  href={item.href}
+                  className="w-full mb-4 p-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-150 flex items-center justify-between rounded-lg"
+                >
+                  <div className="flex items-center">
+                    {item.type === 'text/csv' ? (
+                      <FileText size={20} className="text-blue-600 mr-3" />
+                    ) : item.type === 'application/json' ? (
+                      <FileText size={20} className="text-yellow-600 mr-3" />
+                    ) : item.type === 'application/base64' ? (
+                      <Table size={20} className="text-green-600 mr-3" />
+                    ) : (
+                      <FileText size={20} className="text-purple-600 mr-3" />
+                    )}
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">
+                        {item.type === 'text/csv'
+                          ? 'CSV Data'
+                          : item.type === 'application/json'
+                          ? 'JSON File'
+                          : item.type === 'application/base64'
+                          ? 'Excel Spreadsheet'
+                          : 'PxStat File'}
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        {item.type.split('/')[1].toUpperCase()} •{' '}
+                        {item.href.split('/').pop().split('.').pop().toUpperCase()}
+                      </p>
+                    </div>
+                  </div>
+                  <Download size={18} className="text-gray-400" />
+                </a>
+              ))}
             </div>
           </div>
 
-          <div className="ds_section">
-            <h2 className="ds_heading-l">Select Dimensions</h2>
-            <div className="ds_dimensions">
-              {Object.entries(dimension || {}).map(([key, value]) => {
-                const hasLongDescription = value.label.split(' ').length > 10;
-                const hasManyRecords = Object.keys(value.category?.label || {}).length > 100;
+          <div className="ds_layout__list">
+            <div className="ds_search-results">
+              <hr />
+              <section className={styles.section}>
+                <h2 className="ds_h3">Summary</h2>
+                <p>{extension.product?.value || label}</p>
+              </section>
+              <hr />
+              <section className={styles.section}>
+                <h2 className="ds_h3">Description</h2>
+                {note?.[0] ? (
+                  note[0]
+                    .replace(/\[url=(.*?)\](.*?)\[\/url\]/g, '[$2]($1)')
+                    .split('\n')
+                    .map((paragraph, index) => <p key={index}>{paragraph}</p>)
+                ) : (
+                  <p>No description available</p>
+                )}
+              </section>
+              <hr />
+              <section className={styles.section}>
+                <h2 className="ds_h3">Select Dimensions</h2>
+                <div className="space-y-4">
+                  {Object.entries(dimension || {}).map(([key, value]) => {
+                    const hasLongDescription = value.label.split(' ').length > 10;
+                    const hasManyRecords = Object.keys(value.category?.label || {}).length > 100;
 
-                return (
-                  <div key={key} className="ds_dimension-item">
-                    <button
-                      onClick={() => handleDimensionToggle(key)}
-                      className="ds_dimension-header"
-                    >
-                      <div>
-                        <div className="ds_dimension-label">{value.label}</div>
-                        {selectedDimensions[key]?.length > 0 && (
-                          <div className="ds_dimension-selected">{selectedDimensions[key]?.length} selected</div>
-                        )}
-                      </div>
-                      <ChevronDown
-                        size={20}
-                        className={`ds_icon ${openDimension === key ? 'ds_icon-rotated' : ''}`}
-                      />
-                    </button>
-
-                    {openDimension === key && (
-                      <div className="ds_dimension-content">
-                        <div className="ds_dimension-actions">
-                          <div className="ds_dimension-selected-count">
-                            {selectedDimensions[key]?.length || 0} of {Object.keys(value.category?.label || {}).length} selected
+                    return (
+                      <div key={key} className="border border-gray-100 overflow-hidden">
+                        <button
+                          onClick={() => handleDimensionToggle(key)}
+                          className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="text-left text-gray-800 font-medium">{value.label}</div>
+                            {selectedDimensions[key]?.length > 0 && (
+                              <div className="text-sm text-gray-500 mt-1">
+                                {selectedDimensions[key]?.length} selected
+                              </div>
+                            )}
                           </div>
-                          <div className="ds_dimension-action-buttons">
-                            <button
-                              onClick={() => handleSelectAll(key, value.category?.label)}
-                              className="ds_button ds_button-link"
-                            >
-                              Select all
-                            </button>
-                            <button
-                              onClick={() => handleClearAll(key)}
-                              className="ds_button ds_button-link"
-                            >
-                              Clear all
-                            </button>
-                          </div>
-                        </div>
-                        <div className="ds_dimension-categories">
-                          {hasManyRecords && (
-                            <div className="ds_search-box">
-                              <div className="ds_search-input-wrapper">
-                                <input
-                                  type="text"
-                                  placeholder="Search..."
-                                  value={searchQuery}
-                                  onChange={(e) => setSearchQuery(e.target.value)}
-                                  className="ds_input"
-                                />
-                                <Search size={18} className="ds_icon" />
+                          <ChevronDown
+                            size={20}
+                            className={`text-gray-400 transition-transform duration-200 ${
+                              openDimension === key ? 'transform rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+                        {openDimension === key && (
+                          <div className="border-t border-gray-100">
+                            <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                              <div className="text-sm text-gray-500">
+                                {selectedDimensions[key]?.length || 0} of{' '}
+                                {Object.keys(value.category?.label || {}).length} selected
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                <button
+                                  onClick={() => handleSelectAll(key, value.category?.label)}
+                                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                >
+                                  Select all
+                                </button>
+                                <button
+                                  onClick={() => handleClearAll(key)}
+                                  className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                                >
+                                  Clear all
+                                </button>
                               </div>
                             </div>
-                          )}
-                          <div className="ds_dimension-categories-list">
-                            {filteredCategories(value.category?.label).map(([code, label]) => {
-                              const isSelected = selectedDimensions[key]?.includes(code);
-                              return (
-                                <div key={code} className="ds_dimension-category-item">
-                                  <button
-                                    onClick={() => handleDimensionSelect(key, code, !isSelected)}
-                                    className={`ds_dimension-category-button ${isSelected ? 'ds_dimension-category-button-selected' : ''}`}
-                                  >
-                                    <div className={`ds_dimension-category-checkbox ${isSelected ? 'ds_dimension-category-checkbox-selected' : ''}`}>
-                                      {isSelected && <Check size={14} className="ds_icon" />}
-                                    </div>
-                                    <span className="ds_dimension-category-label">
-                                      {label}
-                                    </span>
-                                  </button>
+                            <div className="max-h-64 overflow-y-auto">
+                              {hasManyRecords && (
+                                <div className="p-4 border-b border-gray-100">
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      placeholder="Search..."
+                                      value={searchQuery}
+                                      onChange={(e) => setSearchQuery(e.target.value)}
+                                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+                                  </div>
                                 </div>
-                              );
-                            })}
+                              )}
+                              <div
+                                className={`grid ${
+                                  filteredCategories(value.category?.label).some(
+                                    ([_, label]) => label.split(' ').length > 10 || label.length > 60
+                                  )
+                                    ? 'grid-cols-1'
+                                    : 'grid-cols-1 md:grid-cols-2'
+                                } gap-2 p-4`}
+                              >
+                                {filteredCategories(value.category?.label).map(([code, label]) => {
+                                  const isSelected = selectedDimensions[key]?.includes(code);
+                                  return (
+                                    <div key={code} className="flex items-center">
+                                      <button
+                                        onClick={() => handleDimensionSelect(key, code, !isSelected)}
+                                        className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${
+                                          isSelected ? 'bg-blue-50' : ''
+                                        }`}
+                                      >
+                                        <div
+                                          className={`w-5 h-5 rounded flex items-center justify-center ${
+                                            isSelected ? 'bg-blue-600' : 'border border-gray-300'
+                                          }`}
+                                        >
+                                          {isSelected && <Check size={14} className="text-white" />}
+                                        </div>
+                                        <span className="ml-3 text-gray-700 text-sm whitespace-normal text-left">
+                                          {label}
+                                        </span>
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+                <div className="mt-8 flex space-x-4">
+                  <button
+                    onClick={() => setIsChartConfigOpen(true)}
+                    className="ds_button ds_button--secondary"
+                  >
+                    <Eye size={16} className="inline mr-2" />
+                    Configure Chart
+                  </button>
+                  <button
+                    onClick={handleViewClick}
+                    className="ds_button ds_button--secondary"
+                  >
+                    <Table size={16} className="inline mr-2" />
+                    View Data
+                  </button>
+                  <button
+                    onClick={handleApiClick}
+                    className="ds_button ds_button--secondary"
+                  >
+                    <Share2 size={16} className="inline mr-2" />
+                    API
+                  </button>
+                </div>
+                {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
+              </section>
+              <hr />
+              <section className={styles.section}>
+                <h2 className="ds_h3">Data Quality</h2>
+                <div className="ds_accordion">
+                  {[
+                    {
+                      key: 'Accuracy and Reliability',
+                      value: 'Data is sourced from official records with rigorous validation processes.',
+                    },
+                    {
+                      key: 'Timeliness and Punctuality',
+                      value: 'Data is updated quarterly, ensuring timely availability.',
+                    },
+                  ].map((item, index) => (
+                    <div key={index} className="ds_accordion-item">
+                      <input
+                        type="checkbox"
+                        className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                        id={`quality-detail-${index}`}
+                      />
+                      <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                        <h3 className="ds_accordion-item__title">{item.key}</h3>
+                        <span className={styles.accordionIndicator}></span>
+                        <label
+                          className="ds_accordion-item__label"
+                          htmlFor={`quality-detail-${index}`}
+                        >
+                          <span className="visually-hidden">Show this section</span>
+                        </label>
+                      </div>
+                      <div className="ds_accordion-item__body">
+                        <p>{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className={styles.section}>
+                <h2 className="ds_h3">Additional Details</h2>
+                <div className="ds_accordion">
+                  {[
+                    {
+                      key: 'Official Statistics',
+                      value: extension.official
+                        ? 'This dataset is classified as official statistics.'
+                        : 'This dataset is not classified as official statistics.',
+                    },
+                    {
+                      key: 'Experimental Statistics',
+                      value: extension.experimental
+                        ? 'This dataset includes experimental statistics under development.'
+                        : 'This dataset does not include experimental statistics.',
+                    },
+                  ].map((item, index) => (
+                    <div key={index} className="ds_accordion-item">
+                      <input
+                        type="checkbox"
+                        className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                        id={`additional-detail-${index}`}
+                      />
+                      <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                        <h3 className="ds_accordion-item__title">{item.key}</h3>
+                        <span className={styles.accordionIndicator}></span>
+                        <label
+                          className="ds_accordion-item__label"
+                          htmlFor={`additional-detail-${index}`}
+                        >
+                          <span className="visually-hidden">Show this section</span>
+                        </label>
+                      </div>
+                      <div className="ds_accordion-item__body">
+                        <p>{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
-
-          <div className="ds_actions">
-            <button
-              onClick={() => setIsChartConfigOpen(true)}
-              className="ds_button"
-            >
-              <Eye size={16} />
-              <span>Configure Chart</span>
-            </button>
-            <button
-              onClick={handleViewClick}
-              className="ds_button ds_button-secondary"
-            >
-              <Table size={16} />
-              <span>View Data</span>
-            </button>
-          </div>
-
-          {error && <div className="ds_error-message">{error}</div>}
 
           <APIModal
             isOpen={isApiModalOpen}
@@ -391,70 +650,27 @@ const Dataset = () => {
             apiData={apiData}
             apiUrl={dataset.href}
           />
-
           <ChartConfigurationModal
             isOpen={isChartConfigOpen}
             onRequestClose={() => setIsChartConfigOpen(false)}
             onConfigureChart={handleConfigureChart}
             dataset={dataset}
           />
-
           <ChartRenderingModal
             isOpen={isChartRenderOpen}
             onRequestClose={() => setIsChartRenderOpen(false)}
             chartConfig={chartConfig}
             dataset={dataset}
-            matrix={id} // Pass the matrix ID from the URL params
+            matrix={id}
           />
-
           <DataViewerModal
             isOpen={isTableModalOpen}
             onRequestClose={() => setIsTableModalOpen(false)}
             tableData={tableData}
           />
-        </div>
-
-        <div className="ds_layout__sidebar">
-          <div className="ds_article-aside">
-            <h2>Downloads</h2>
-            {link?.alternate?.map((item, index) => (
-              <a
-                key={index}
-                href={item.href}
-                className="ds_download-link"
-              >
-                <div className="ds_download-icon">
-                  {item.type === 'text/csv' ? (
-                    <FileText size={20} className="ds_icon-csv" />
-                  ) : item.type === 'application/json' ? (
-                    <FileText size={20} className="ds_icon-json" />
-                  ) : item.type === 'application/base64' ? (
-                    <Table size={20} className="ds_icon-excel" />
-                  ) : (
-                    <FileText size={20} className="ds_icon-pxstat" />
-                  )}
-                </div>
-                <div className="ds_download-details">
-                  <h4 className="ds_download-title">
-                    {item.type === 'text/csv'
-                      ? 'CSV Data'
-                      : item.type === 'application/json'
-                      ? 'JSON File'
-                      : item.type === 'application/base64'
-                      ? 'Excel Spreadsheet'
-                      : 'PxStat File'}
-                  </h4>
-                  <p className="ds_download-subtitle">
-                    {item.type.split('/')[1].toUpperCase()} •{' '}
-                    {item.href.split('/').pop().split('.').pop().toUpperCase()}
-                  </p>
-                </div>
-                <Download size={18} className="ds_icon" />
-              </a>
-            ))}
-          </div>
-        </div>
-      </main>
+        </main>
+      </div>
+      <BackToTop />
     </div>
   );
 };

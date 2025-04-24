@@ -1,71 +1,193 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+// Updated Help.jsx component
+import { useEffect, React } from 'react';
+import '@scottish-government/design-system/dist/css/design-system.min.css';
+import styles from '../styles/Design_Style.module.css';
+import { Link } from 'react-router-dom'; // Import Link for routing
+import BackToTop from '../components/BackToTop';
 
 const Help = () => {
   useEffect(() => {
-    document.title = "Emerald | Help";
-  }, []);
-
+    // Dynamically set the page title
+    document.title = "Cobalt | Help";
+  }, []);   
+  
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div className="relative max-w-6xl mx-auto px-8 py-16" style={{ paddingTop: '30px', paddingBottom: '30px' }}>
-          <nav className="breadcrumb">
-            <span className="breadcrumb-link">
-              <Link to="/home">Home</Link>
-            </span>
-            <span className="separator">/</span>
-            <span className="current-page">Help & Support</span>
-          </nav>
-          <div className="md:w-3/4">
-            <h1 className="text-4xl font-medium text-white leading-tight" style={{ marginBottom: '20px' }}>
-              Help & Support
-            </h1>
-            <p className="text-lg text-gray-200 mb-4">
-              Find answers to common questions and get support for the Emerald Open Data Portal.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="ds_page__middle">
+      <div className="ds_wrapper">
+        <main id="main-content">
+          <header className="ds_page-header">
+            <h1 className="ds_page-header__title">Help & Support</h1>
+            </header>
 
-      <div className="max-w-6xl mx-auto px-8 py-12">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="lg:w-2/3">
-            <div className="bg-white rounded-lg shadow-sm p-8">
-              <h2 className="text-xl font-medium text-gray-900 mb-6">Frequently Asked Questions</h2>
-              <div className="space-y-4">
-                {[
-                  { title: "How do I find data?", body: "You can search for data using keywords in the search boxes or browse the Datasets and Organisations pages." },
-                  { title: "How do I download data?", body: "Locate your dataset and download it in CSV format by clicking the download button under the Resources section." },
-                  { title: "How do I know if the data is reliable?", body: "Each dataset is accompanied by high-quality metadata and a data dictionary. For more information, contact the data producer." },
-                  { title: "How do I use the API?", body: "Datasets with an API endpoint include an API button for easy access to the data programmatically." },
-                  { title: "How up to date is the data?", body: "Datasets show their last modification date and update frequency on their respective pages." },
-                  { title: "Where else can I find data?", body: "Explore other platforms like Public Health Scotland's Open Data portal or use search engines with relevant keywords." },
-                  { title: "How can I share feedback?", body: "We’re always keen to hear from you. Use the Contact Us page to share your thoughts or seek further help." }
-                ].map((faq, index) => (
-                  <div key={index} className="border-b border-gray-200 pb-4">
-                    <h3 className="text-lg font-medium text-gray-900">{faq.title}</h3>
-                    <p className="mt-2 text-gray-600">{faq.body}</p>
+            <p className="ds_page-header__subtitle">
+              Find answers to common questions and get support for the Cobalt Open Data Portal.
+            </p>
+
+          <section className="ds_layout ds_layout--article">
+            <div className="ds_layout__content">
+              <h2 className="ds_h2">Frequently Asked Questions</h2>
+              <div className="ds_accordion">
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-1"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">How do I find data?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-1">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
                   </div>
-                ))}
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      There are many ways to find and discover data. You can search for data in the search boxes on the home page or in the page header by using relevant key words, such as ‘population’ or ‘National Records’. You can go to the Datasets page to browse, filter and sort all datasets. You can also go to the Organisations page to browse all organisations who provide data to the site.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-2"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">How do I download the data I’m interested in?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-2">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
+                  </div>
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      Once you have located your dataset, e.g., Police Officer Quarterly Strength, you can download the data in CSV format by clicking on the download button beneath the Resources header.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-3"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">How do I know if the data is reliable and of good quality?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-3">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
+                  </div>
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      We work with Data Producers to provide high quality metadata to describe the data. This information is available on the data’s dataset page. A data dictionary accompanies each resource. If you need more information, you can contact the data producer directly from their contact details on the respective dataset page.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-4"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">How do I use the API to access data?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-4">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
+                  </div>
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      Each resource which has an API end-point shows an API button.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-5"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">How up to date is the data on this site?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-5">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
+                  </div>
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      We work with Data Producers to keep the data and metadata on this site up to date. On each dataset’s page you can find when the dataset was last modified and the frequency the data is updated. Unless specified otherwise, we aim to update each dataset regularly and the data should be considered the latest version.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-6"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">If I can’t find data on your site, where else might it be?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-6">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
+                  </div>
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      Statistics.gov.scot is just one data publishing platform and there are many others, e.g., Public Health Scotland’s Scottish Health and Social Care Open Data platform, and the Scottish Government’s Spatial Data platform. Depending on your search, you might want to consider other platforms. Searching directly into your favourite search engine with relevant keywords may yield results as many platforms have their data well tagged and marked-up to support search.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ds_accordion-item">
+                  <input
+                    type="checkbox"
+                    className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                    id="faq-7"
+                  />
+                  <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                    <h3 className="ds_accordion-item__title">I have feedback on the site, how do I share this?</h3>
+                    <span className={styles.accordionIndicator}></span>
+                    <label className="ds_accordion-item__label" htmlFor="faq-7">
+                      <span className="visually-hidden">Show this section</span>
+                    </label>
+                  </div>
+                  <div className="ds_accordion-item__body">
+                    <p>
+                      We’re always keen to hear from you. Please get in touch with any feedback or let us know how we can help you.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="bg-white rounded-lg shadow-sm p-8 mt-8">
-              <h2 className="text-xl font-medium text-gray-900 mb-6">Contact Support</h2>
-              <p className="text-gray-600">If you can't find the answer to your question, please contact our support team. We're here to help!</p>
-              <Link
-                to="/contact"
-                className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-              >
-                Contact Us
-              </Link>
-            </div>
+          <section className="ds_layout ds_layout--article">
+          <div className="ds_layout__content">
+            <h2 className="ds_h2">Contact Support</h2>
+            <p>
+              If you can't find the answer to your question, please contact our support team. We're here to help!
+            </p>
+            <Link to="/contact" className="ds_button ds_button--primary">
+              Contact us
+            </Link>
           </div>
-        </div>
+        </section>
+        <BackToTop />
+
+        </main>
+        
       </div>
+
     </div>
   );
 };
