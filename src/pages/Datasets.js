@@ -1,83 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ChevronDown, Filter, Calendar, Tag, X, Check } from 'lucide-react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import '@scottish-government/design-system/dist/css/design-system.min.css';
+import config from '../config';
+import styles from '../styles/Design_Style.module.css';
+import BackToTop from '../components/BackToTop';
 import { PropagateLoader } from 'react-spinners';
-import config from '../config.js';
 
 const Datasets = () => {
-  const [filtersVisible, setFiltersVisible] = useState(true);
-  const [sortOption, setSortOption] = useState('relevance');
-  const [selectedFilters, setSelectedFilters] = useState({
-    topics: [],
-    types: [],
-    organisations: [],
-    dateRange: [null, null],
-  });
-  const [searchResults, setSearchResults] = useState([]);
-  const [filteredResults, setFilteredResults] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filtersData, setFiltersData] = useState({ topics: [], types: [], organisations: [] });
-  const [openFilter, setOpenFilter] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [resultsPerPage] = useState(10);
   const location = useLocation();
   const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const searchQuery = queryParams.get('q');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState('relevance');
+  const [selectedOrganizations, setSelectedOrganizations] = useState([]);
+  const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
+  const [organizationOptions, setOrganizationOptions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [resultsPerPage] = useState(10);
 
-  // Get search query from URL
-  const urlParams = new URLSearchParams(location.search);
-  const searchQuery = urlParams.get('q');
-
-  // Fetch data based on URL search term
   useEffect(() => {
+    document.title = "Cobalt | Datasets";
     if (searchQuery) {
-      setSearchTerm(searchQuery);
       fetchSearchResults(searchQuery);
     } else {
       fetchDefaultDatasets();
     }
-  }, [location.search]);
+  }, [searchQuery]);
 
-  // Fetch search results
-  const fetchSearchResults = async (term) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'PxStat.System.Navigation.Navigation_API.Search',
-          params: { Search: term, LngIsoCode: 'en' },
-          id: Math.floor(Math.random() * 1000000000),
-        }),
-      });
-      const data = await response.json();
-      setSearchResults(data.result);
-
-      // Extract unique filter values
-      const uniqueTopics = [...new Set(data.result.map((item) => item.ThmValue))];
-      const uniqueTypes = [...new Set(data.result.map((item) => item.SbjValue))];
-      const uniqueOrganisations = [...new Set(data.result.map((item) => item.CprValue))];
-      setFiltersData({ topics: uniqueTopics, types: uniqueTypes, organisations: uniqueOrganisations });
-    } catch (error) {
-      console.error('Error fetching search results:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch default datasets
   const fetchDefaultDatasets = async () => {
     setLoading(true);
     try {
       const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: 'PxStat.Data.Cube_API.ReadCollection',
@@ -85,499 +43,450 @@ const Datasets = () => {
           id: 977917801,
         }),
       });
+      if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       const datasets = data.result.link.item.map((item) => ({
         MtrCode: item.extension.matrix,
         MtrTitle: item.label,
         RlsLiveDatetimeFrom: item.updated,
         CprValue: item.extension.copyright.name,
+        description: item.description || 'No description available',
       }));
-      setSearchResults(datasets);
-
-      // Extract filters from default datasets
-      const uniqueOrganisations = [...new Set(datasets.map((item) => item.CprValue))];
-      setFiltersData({ topics: [], types: [], organisations: uniqueOrganisations });
+      setResults(datasets);
+      setOrganizationOptions([...new Set(datasets.map((item) => item.CprValue))]);
+      setLoading(false);
     } catch (error) {
-      console.error('Error fetching default datasets:', error);
-    } finally {
+      setError(error);
       setLoading(false);
     }
   };
 
-  // Apply filters whenever search results or selected filters change
-  useEffect(() => {
-    applyFilters();
-  }, [searchResults, selectedFilters]);
-
-  const applyFilters = () => {
-    const results = searchResults.filter((result) => {
-      const topicMatch = selectedFilters.topics.length === 0 || selectedFilters.topics.includes(result.ThmValue);
-      const typeMatch = selectedFilters.types.length === 0 || selectedFilters.types.includes(result.SbjValue);
-      const organisationMatch = selectedFilters.organisations.length === 0 || selectedFilters.organisations.includes(result.CprValue);
-      const dateMatch = selectedFilters.dateRange[0] === null || selectedFilters.dateRange[1] === null ||
-        (new Date(result.RlsLiveDatetimeFrom) >= new Date(selectedFilters.dateRange[0]) &&
-         new Date(result.RlsLiveDatetimeFrom) <= new Date(selectedFilters.dateRange[1]));
-      return topicMatch && typeMatch && organisationMatch && dateMatch;
-    });
-    setFilteredResults(results);
-  };
-
-  // Handle search form submission
-  const handleSearch = (event) => {
-    event.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/datasets?q=${encodeURIComponent(searchTerm.trim())}`);
-    } else {
-      navigate('/datasets');
+  const fetchSearchResults = async (term) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'PxStat.System.Navigation.Navigation_API.Search',
+          params: { Search: term, LngIsoCode: 'en' },
+          id: Math.floor(Math.random() * 1000000000),
+        }),
+      });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      setResults(data.result);
+      setOrganizationOptions([...new Set(data.result.map((item) => item.CprValue))]);
+      setLoading(false);
+    } catch (error) {
+      setError(error);
+      setLoading(false);
     }
   };
 
-  // Handle dataset click
-  const handleDatasetClick = (mtrCode) => {
-    navigate(`/dataset/${mtrCode}`);
+  const handleSortChange = (e) => {
+    const selectedSort = e.target.value;
+    setSortBy(selectedSort);
+    let sortedResults = [...results];
+    if (selectedSort === 'date') {
+      sortedResults.sort((a, b) => new Date(b.RlsLiveDatetimeFrom) - new Date(a.RlsLiveDatetimeFrom));
+    } else if (selectedSort === 'adate') {
+      sortedResults.sort((a, b) => new Date(a.RlsLiveDatetimeFrom) - new Date(b.RlsLiveDatetimeFrom));
+    }
+    setResults(sortedResults);
   };
 
-  // Toggle filter visibility
-  const toggleFilter = (category, value) => {
-    setSelectedFilters((prev) => ({
-      ...prev,
-      [category]: prev[category].includes(value)
-        ? prev[category].filter((item) => item !== value)
-        : [...prev[category], value],
+  const handleOrganizationFilter = (org) => {
+    setSelectedOrganizations((prev) =>
+      prev.includes(org) ? prev.filter((item) => item !== org) : [...prev, org]
+    );
+  };
+
+  const handleDateRangeChange = (index, value) => {
+    setSelectedDateRange((prev) => {
+      const newRange = [...prev];
+      newRange[index] = value;
+      return newRange;
+    });
+  };
+
+  const filteredResults = results.filter((result) => {
+    const orgMatch =
+      selectedOrganizations.length === 0 || selectedOrganizations.includes(result.CprValue);
+    const dateMatch =
+      selectedDateRange[0] === null ||
+      selectedDateRange[1] === null ||
+      (new Date(result.RlsLiveDatetimeFrom) >= new Date(selectedDateRange[0]) &&
+       new Date(result.RlsLiveDatetimeFrom) <= new Date(selectedDateRange[1]));
+    return orgMatch && dateMatch;
+  });
+
+  const getOrganizationCounts = () => {
+    return organizationOptions.map((org) => ({
+      name: org,
+      count: results.filter((result) => result.CprValue === org).length,
     }));
   };
 
-  // Pagination logic
   const indexOfLastResult = currentPage * resultsPerPage;
   const indexOfFirstResult = indexOfLastResult - resultsPerPage;
   const currentResults = filteredResults.slice(indexOfFirstResult, indexOfLastResult);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Render the component
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with Breadcrumbs */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0065bd] to-[#0057a4]"></div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQ0MCIgaGVpZ2h0PSI3NjgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PGxpbmVhckdyYWRpZW50IHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiIGlkPSJhIj48c3RvcCBzdG9wLWNvbG9yPSIjRkZGIiBzdG9wLW9wYWNpdHk9Ii4yNSIgb2Zmc2V0PSIwJSIvPjxzdG9wIHN0b3AtY29sb3I9IiNGRkYiIHN0b3Atb3BhY2l0eT0iMCIgb2Zmc2V0PSIxMDAlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTAgMGgxNDQwdjc2OEgweiIgZmlsbD0idXJsKCNhKSIgZmlsbC1ydWxlPSJldmVub2RkIiBvcGFjaXR5PSIuMiIvPjwvc3ZnPg==')] opacity-30"></div>
-        <div class="relative max-w-6xl mx-auto px-8 py-16" style= {{  paddingTop: '30px',    paddingBottom: '30px'}}>
+  if (loading) {
+    return (
+      <div className="ds_page__middle">
+        <div className="ds_wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <PropagateLoader color="#0065bd" loading={true} speedMultiplier={1} />
+        </div>
+      </div>
+    );
+  }
 
-          {/* Breadcrumbs */}
-          <nav className="breadcrumb">
-  <span className="breadcrumb-link">
-    <Link to="/home">Home</Link>
-  </span>
-  <span className="separator">/</span>
-  <span className="current-page">Search Results</span>
-</nav>
-
-
-          <div className="md:w-3/4">
-            <h1 className="text-4xl font-medium text-white leading-tight" style={{ marginBottom: '20px' }}>
-              Datasets
-            </h1>
-            <p className="text-lg text-gray-200 mb-4">
-              {searchQuery ? (
-                <>Showing {filteredResults.length} results for <span className="font-medium">{searchQuery}</span></>
-              ) : (
-                <>Showing latest {filteredResults.length} datasets</>
-              )}
-            </p>
+  if (error) {
+    return (
+      <div className="ds_page__middle">
+        <div className="ds_wrapper">
+          <div className="ds_error">
+            <p>Error: {error.message}</p>
           </div>
-          <form onSubmit={handleSearch} className="flex group">
-            <div className="relative flex-1 bg-white/10 rounded-l-lg border-y border-l border-white/20">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-100" size={20} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search datasets, publications, and more..."
-                className="w-full pl-12 pr-4 py-4 bg-transparent text-white placeholder-blue-100/70 focus:outline-none transition-colors duration-200"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-8 bg-white/10 hover:bg-white/20 text-white transition-colors duration-200 rounded-r-lg border border-white/20"
-            >
-              Search
-            </button>
-          </form>
         </div>
       </div>
+    );
+  }
 
-      {/* Filters and Results Section */}
-      <div className="max-w-6xl mx-auto px-8 py-12">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <aside className={`lg:w-1/3 ${filtersVisible ? 'block' : 'hidden lg:block'}`}>
-            <div className="sticky top-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-medium text-gray-900">Filters</h2>
-                <button
-                  className="lg:hidden px-3 py-1 text-sm text-gray-600 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors duration-200"
-                  onClick={() => setFiltersVisible(!filtersVisible)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Topic Filter (only for search results) */}
-              {searchQuery && (
-                <div className="mb-4 border border-gray-100 overflow-hidden bg-white rounded-lg shadow-sm">
-                  <button
-                    onClick={() => setOpenFilter(openFilter === 'topics' ? null : 'topics')}
-                    className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
-                  >
-                    <div>
-                      <div className="text-left text-gray-800 font-medium">Topic</div>
-                      {selectedFilters.topics?.length > 0 && (
-                        <div className="text-sm text-gray-500 mt-1">{selectedFilters.topics.length} selected</div>
-                      )}
-                    </div>
-                    <ChevronDown
-                      size={20}
-                      className={`text-gray-400 transition-transform duration-200 ${openFilter === 'topics' ? 'transform rotate-180' : ''}`}
+  return (
+    <div className="ds_page__middle">
+      <div className="ds_wrapper">
+        <main className="ds_layout ds_layout--search-results--filters">
+          <div className="ds_layout__header">
+            <header className="ds_page-header">
+              <h1 className="ds_page-header__title">
+                {searchQuery ? `Search results for "${searchQuery}"` : 'Datasets'}
+              </h1>
+            </header>
+          </div>
+          <div className="ds_layout__content"></div>
+          <div className="ds_layout__sidebar">
+            <div className="ds_search-filters">
+              <h3 className="ds_search-filters__title ds_h4">Search</h3>
+              <div className="ds_site-search">
+                <form action="/results" role="search" className="ds_site-search__form" method="GET">
+                  <label className="ds_label visually-hidden" htmlFor="site-search">Search</label>
+                  <div className="ds_input__wrapper ds_input__wrapper--has-icon">
+                    <input
+                      name="q"
+                      required
+                      id="site-search"
+                      className="ds_input ds_site-search__input"
+                      type="search"
+                      placeholder="Search"
+                      autoComplete="off"
+                      value={searchQuery || ''}
+                      onChange={(e) => navigate(`/datasets?q=${encodeURIComponent(e.target.value)}`)}
                     />
-                  </button>
-
-                  {openFilter === 'topics' && (
-                    <div className="border-t border-gray-100">
-                      <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                        <div className="text-sm text-gray-500">
-                          {selectedFilters.topics?.length || 0} of {filtersData.topics.length} selected
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <button
-                            onClick={() => setSelectedFilters((prev) => ({ ...prev, topics: [...filtersData.topics] }))}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Select all
-                          </button>
-                          <button
-                            onClick={() => setSelectedFilters((prev) => ({ ...prev, topics: [] }))}
-                            className="text-sm text-gray-600 hover:text-gray-800 font-medium"
-                          >
-                            Clear all
-                          </button>
-                        </div>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto">
-                        <div className="p-4">
-                          {filtersData.topics.map((item, index) => {
-                            const isSelected = selectedFilters.topics?.includes(item);
-                            return (
-                              <div key={index} className="flex items-center mb-2">
-                                <button
-                                  onClick={() => toggleFilter('topics', item)}
-                                  className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
-                                >
-                                  <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
-                                    {isSelected && <Check size={14} className="text-white" />}
-                                  </div>
-                                  <span className="ml-3 text-gray-700 text-sm">{item}</span>
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Type Filter (only for search results) */}
-              {searchQuery && (
-                <div className="mb-4 border border-gray-100 overflow-hidden bg-white rounded-lg shadow-sm">
-                  <button
-                    onClick={() => setOpenFilter(openFilter === 'types' ? null : 'types')}
-                    className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
-                  >
-                    <div>
-                      <div className="text-left text-gray-800 font-medium">Type</div>
-                      {selectedFilters.types?.length > 0 && (
-                        <div className="text-sm text-gray-500 mt-1">{selectedFilters.types.length} selected</div>
-                      )}
-                    </div>
-                    <ChevronDown
-                      size={20}
-                      className={`text-gray-400 transition-transform duration-200 ${openFilter === 'types' ? 'transform rotate-180' : ''}`}
-                    />
-                  </button>
-
-                  {openFilter === 'types' && (
-                    <div className="border-t border-gray-100">
-                      <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                        <div className="text-sm text-gray-500">
-                          {selectedFilters.types?.length || 0} of {filtersData.types.length} selected
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <button
-                            onClick={() => setSelectedFilters((prev) => ({ ...prev, types: [...filtersData.types] }))}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Select all
-                          </button>
-                          <button
-                            onClick={() => setSelectedFilters((prev) => ({ ...prev, types: [] }))}
-                            className="text-sm text-gray-600 hover:text-gray-800 font-medium"
-                          >
-                            Clear all
-                          </button>
-                        </div>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto">
-                        <div className="p-4">
-                          {filtersData.types.map((item, index) => {
-                            const isSelected = selectedFilters.types?.includes(item);
-                            return (
-                              <div key={index} className="flex items-center mb-2">
-                                <button
-                                  onClick={() => toggleFilter('types', item)}
-                                  className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
-                                >
-                                  <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
-                                    {isSelected && <Check size={14} className="text-white" />}
-                                  </div>
-                                  <span className="ml-3 text-gray-700 text-sm">{item}</span>
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Organisation Filter (always visible) */}
-              <div className="mb-4 border border-gray-100 overflow-hidden bg-white rounded-lg shadow-sm">
-                <button
-                  onClick={() => setOpenFilter(openFilter === 'organisations' ? null : 'organisations')}
-                  className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
-                >
-                  <div>
-                    <div className="text-left text-gray-800 font-medium">Organisation</div>
-                    {selectedFilters.organisations?.length > 0 && (
-                      <div className="text-sm text-gray-500 mt-1">{selectedFilters.organisations.length} selected</div>
-                    )}
+                    <button type="submit" className="ds_button js-site-search-button">
+                      <span className="visually-hidden">Search</span>
+                      <svg className="ds_icon ds_icon--24" aria-hidden="true" role="img" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                      </svg>
+                    </button>
                   </div>
-                  <ChevronDown
-                    size={20}
-                    className={`text-gray-400 transition-transform duration-200 ${openFilter === 'organisations' ? 'transform rotate-180' : ''}`}
-                  />
-                </button>
-
-                {openFilter === 'organisations' && (
-                  <div className="border-t border-gray-100">
-                    <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                      <div className="text-sm text-gray-500">
-                        {selectedFilters.organisations?.length || 0} of {filtersData.organisations.length} selected
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <button
-                          onClick={() => setSelectedFilters((prev) => ({ ...prev, organisations: [...filtersData.organisations] }))}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          Select all
-                        </button>
-                        <button
-                          onClick={() => setSelectedFilters((prev) => ({ ...prev, organisations: [] }))}
-                          className="text-sm text-gray-600 hover:text-gray-800 font-medium"
-                        >
-                          Clear all
-                        </button>
-                      </div>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      <div className="p-4">
-                        {filtersData.organisations.map((item, index) => {
-                          const isSelected = selectedFilters.organisations?.includes(item);
-                          return (
-                            <div key={index} className="flex items-center mb-2">
-                              <button
-                                onClick={() => toggleFilter('organisations', item)}
-                                className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
-                              >
-                                <div className={`w-5 h-5 rounded flex items-center justify-center ${isSelected ? 'bg-blue-600' : 'border border-gray-300'}`}>
-                                  {isSelected && <Check size={14} className="text-white" />}
-                                </div>
-                                <span className="ml-3 text-gray-700 text-sm">{item}</span>
-                              </button>
+                </form>
+              </div>
+              <div className="ds_details ds_no-margin" data-module="ds-details">
+                <input id="filters-toggle" type="checkbox" className="ds_details__toggle visually-hidden" />
+                <label htmlFor="filters-toggle" className="ds_details__summary">
+                  Search filters
+                </label>
+                <div className="ds_skip-links ds_skip-links--static">
+                  <ul className="ds_skip-links__list">
+                    <li className="ds_skip-links__item">
+                      <a className="ds_skip-links__link" href="#search-results">Skip to results</a>
+                    </li>
+                  </ul>
+                </div>
+                <div className="ds_details__text">
+                  <form id="filters">
+                    <h3 className="ds_search-filters__title ds_h4">Filter by</h3>
+                    <div className="ds_accordion ds_accordion--small ds_!_margin-top--0" data-module="ds-accordion">
+                      <div className="ds_accordion-item">
+                        <input
+                          type="checkbox"
+                          className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                          id="organization-panel"
+                        />
+                        <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                          <h3 className="ds_accordion-item__title">
+                            Organisation
+                            {selectedOrganizations.length > 0 && (
+                              <div className="ds_search-filters__filter-count">
+                                ({selectedOrganizations.length} selected)
+                              </div>
+                            )}
+                          </h3>
+                          <span className={styles.accordionIndicator}></span>
+                          <label className="ds_accordion-item__label" htmlFor="organization-panel">
+                            <span className="visually-hidden">Show this section</span>
+                          </label>
+                        </div>
+                        <div className="ds_accordion-item__body">
+                          <fieldset>
+                            <legend className="visually-hidden">Select which organizations you would like to see</legend>
+                            <div className="ds_search-filters__scrollable">
+                              <div className="ds_search-filters__checkboxes">
+                                {getOrganizationCounts().map((org) => (
+                                  <div key={org.name} className="ds_checkbox ds_checkbox--small">
+                                    <input
+                                      id={`org-${org.name}`}
+                                      type="checkbox"
+                                      className="ds_checkbox__input"
+                                      checked={selectedOrganizations.includes(org.name)}
+                                      onChange={() => handleOrganizationFilter(org.name)}
+                                    />
+                                    <label htmlFor={`org-${org.name}`} className="ds_checkbox__label">
+                                      {org.name}
+                                      <span className="badge ml-2"> ({org.count})</span>
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Date Range Filter (always visible) */}
-              <div className="mb-4 border border-gray-100 overflow-hidden bg-white rounded-lg shadow-sm">
-                <button
-                  onClick={() => setOpenFilter(openFilter === 'dateRange' ? null : 'dateRange')}
-                  className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
-                >
-                  <div>
-                    <div className="text-left text-gray-800 font-medium">Date Range</div>
-                    {(selectedFilters.dateRange[0] || selectedFilters.dateRange[1]) && (
-                      <div className="text-sm text-gray-500 mt-1">Filter applied</div>
-                    )}
-                  </div>
-                  <ChevronDown
-                    size={20}
-                    className={`text-gray-400 transition-transform duration-200 ${openFilter === 'dateRange' ? 'transform rotate-180' : ''}`}
-                  />
-                </button>
-
-                {openFilter === 'dateRange' && (
-                  <div className="border-t border-gray-100 p-4">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-2">From</label>
-                        <div className="relative">
-                          <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="date"
-                            value={selectedFilters.dateRange[0] || ''}
-                            onChange={(e) => setSelectedFilters((prev) => ({
-                              ...prev,
-                              dateRange: [e.target.value, prev.dateRange[1]],
-                            }))}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors duration-200"
-                          />
+                          </fieldset>
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-2">To</label>
-                        <div className="relative">
-                          <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="date"
-                            value={selectedFilters.dateRange[1] || ''}
-                            onChange={(e) => setSelectedFilters((prev) => ({
-                              ...prev,
-                              dateRange: [prev.dateRange[0], e.target.value],
-                            }))}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors duration-200"
-                          />
+                      <div className="ds_accordion-item">
+                        <input
+                          type="checkbox"
+                          className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+                          id="date-panel"
+                        />
+                        <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+                          <h3 className="ds_accordion-item__title">
+                            Date Range
+                            {(selectedDateRange[0] || selectedDateRange[1]) && (
+                              <div className="ds_search-filters__filter-count">
+                                (Date selected)
+                              </div>
+                            )}
+                          </h3>
+                          <span className={styles.accordionIndicator}></span>
+                          <label className="ds_accordion-item__label" htmlFor="date-panel">
+                            <span className="visually-hidden">Show this section</span>
+                          </label>
+                        </div>
+                        <div className="ds_accordion-item__body">
+                          <fieldset>
+                            <legend className="visually-hidden">Select date range</legend>
+                            <div className="ds_search-filters__scrollable">
+                              <div className="ds_search-filters__checkboxes">
+                                <label className="ds_label" htmlFor="date-from">From</label>
+                                <input
+                                  id="date-from"
+                                  type="date"
+                                  className="ds_input"
+                                  value={selectedDateRange[0] || ''}
+                                  onChange={(e) => handleDateRangeChange(0, e.target.value)}
+                                />
+                                <label className="ds_label" htmlFor="date-to">To</label>
+                                <input
+                                  id="date-to"
+                                  type="date"
+                                  className="ds_input"
+                                  value={selectedDateRange[1] || ''}
+                                  onChange={(e) => handleDateRangeChange(1, e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          </fieldset>
                         </div>
                       </div>
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => setSelectedFilters((prev) => ({
-                            ...prev,
-                            dateRange: [null, null],
-                          }))}
-                          className="text-sm text-gray-600 hover:text-gray-800 font-medium"
-                        >
-                          Clear dates
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </aside>
-
-          {/* Results Main Section */}
-          <main className="lg:w-2/3">
-            <div className="flex items-center justify-between mb-6">
-              <button
-                className="lg:hidden px-4 py-2 text-sm text-gray-600 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center transition-colors duration-200"
-                onClick={() => setFiltersVisible(!filtersVisible)}
-              >
-                <Filter size={16} className="mr-2" />
-                {filtersVisible ? 'Hide filters' : 'Show filters'}
-              </button>
-
-              <div className="flex items-center">
-                <span className="text-sm text-gray-600 mr-2">Sort by:</span>
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
-                  className="pl-4 pr-10 py-2 text-sm bg-white text-gray-900 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-500 transition-colors duration-200"
-                  style={{ paddingRight: '2.5rem' }}
-                >
-                  <option value="relevance">Relevance</option>
-                  <option value="date">Date (Newest)</option>
-                  <option value="popularity">Popularity</option>
-                </select>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="ds_page__middle">
-                <div className="ds_wrapper" style={{ display: 'flex', justifyContent: 'center', alignItems: 'top', height: '100vh' }}>
-                  <PropagateLoader
-                    color="#0065bd"
-                    loading={true}
-                    speedMultiplier={1}
-                  />
-                </div>
-              </div>
-            ) : (
-              filteredResults.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No results found for "{searchQuery}"</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {currentResults.map((result) => (
-                    <div
-                      key={result.MtrCode}
-                      onClick={() => handleDatasetClick(result.MtrCode)}
-                      className="p-6 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer"
+                    <button
+                      type="button"
+                      className="ds_button ds_button--primary ds_button--small ds_button--max ds_no-margin"
+                      onClick={() => {
+                        setSelectedOrganizations([]);
+                        setSelectedDateRange([null, null]);
+                      }}
                     >
-                      <h3 className="text-lg font-medium text-gray-900 hover:text-blue-600 transition-colors duration-200 mb-2">
-                        {result.MtrTitle}
-                      </h3>
-                      <div className="flex flex-wrap items-center justify-between">
-                        {/* Tags (only for search results) */}
-                        {searchQuery && (
-                          <div className="flex gap-2 flex-wrap">
-                            {result.classification?.map((classification) => (
-                              <span
-                                key={classification.ClsCode}
-                                className="px-3 py-1 bg-gray-50 text-gray-600 text-xs rounded-full flex items-center"
-                              >
-                                <Tag size={12} className="mr-1.5" />
-                                {classification.ClsValue}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        <span className="text-xs text-gray-500 mt-2 lg:mt-0">
-                          {new Date(result.RlsLiveDatetimeFrom).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {/* Pagination */}
-                  <nav className="ds_pagination" aria-label="Search result pages">
-                    <ul className="ds_pagination__list flex space-x-2">
-                      {Array.from({ length: Math.ceil(filteredResults.length / resultsPerPage) }).map((_, index) => (
-                        <li key={index} className="ds_pagination__item">
-                          <button
-                            onClick={() => paginate(index + 1)}
-                            className={`ds_pagination__link px-4 py-2 rounded-lg ${currentPage === index + 1 ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50'}`}
-                          >
-                            {index + 1}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </nav>
+                      Clear all filters
+                    </button>
+                  </form>
                 </div>
-              )
-            )}
-          </main>
-        </div>
+              </div>
+            </div>
+          </div>
+          <div className="ds_layout__list">
+            <div className="ds_search-results">
+              <h2 aria-live="polite" className="ds_search-results__title">
+                {searchQuery
+                  ? `${filteredResults.length} result${filteredResults.length !== 1 ? 's' : ''} for "${searchQuery}"`
+                  : `Showing latest ${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''}`}
+              </h2>
+              <hr className="ds_search-results__divider" />
+              <div className="ds_search-controls">
+                <div className="ds_skip-links ds_skip-links--static">
+                  <ul className="ds_skip-links__list">
+                    <li className="ds_skip-links__item">
+                      <a className="ds_skip-links__link" href="#search-results">Skip to results</a>
+                    </li>
+                  </ul>
+                </div>
+                <div className="ds_facets">
+                  <p className="visually-hidden">
+                    There are {selectedOrganizations.length + (selectedDateRange[0] || selectedDateRange[1] ? 1 : 0)} search filters applied
+                  </p>
+                  <dl className="ds_facets__list">
+                    {selectedOrganizations.length > 0 && (
+                      <div className="ds_facet-group">
+                        <dt className="ds_facet__group-title">Organization:</dt>
+                        {selectedOrganizations.map((org) => (
+                          <dd key={org} className="ds_facet-wrapper">
+                            <span className="ds_facet">
+                              {org}
+                              <button
+                                type="button"
+                                aria-label={`Remove '${org}' filter`}
+                                className="ds_facet__button"
+                                onClick={() => handleOrganizationFilter(org)}
+                              >
+                                <svg className="ds_facet__button-icon" aria-hidden="true" role="img" focusable="false">
+                                  <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
+                                </svg>
+                              </button>
+                            </span>
+                          </dd>
+                        ))}
+                      </div>
+                    )}
+                    {(selectedDateRange[0] || selectedDateRange[1]) && (
+                      <div className="ds_facet-group">
+                        <dt className="ds_facet__group-title">Date Range:</dt>
+                        <dd className="ds_facet-wrapper">
+                          <span className="ds_facet">
+                            {selectedDateRange[0] || 'Any'} - {selectedDateRange[1] || 'Any'}
+                            <button
+                              type="button"
+                              aria-label="Remove date range filter"
+                              className="ds_facet__button"
+                              onClick={() => setSelectedDateRange([null, null])}
+                            >
+                              <svg className="ds_facet__button-icon" aria-hidden="true" role="img" focusable="false">
+                                <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
+                              </svg>
+                            </button>
+                          </span>
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  {(selectedOrganizations.length > 0 || selectedDateRange[0] || selectedDateRange[1]) && (
+                    <button
+                      className="ds_facets__clear-button ds_button ds_button--secondary"
+                      onClick={() => {
+                        setSelectedOrganizations([]);
+                        setSelectedDateRange([null, null]);
+                      }}
+                    >
+                      Clear all filters
+                      <svg className="ds_facet__button-icon" aria-hidden="true" role="img" focusable="false">
+                        <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className="ds_sort-options">
+                  <label className="ds_label" htmlFor="sort-by">Sort by</label>
+                  <span className={`ds_select-wrapper ${styles.selectWrapper}`}>
+                    <select
+                      className={`ds_select ${styles.select}`}
+                      id="sort-by"
+                      value={sortBy}
+                      onChange={handleSortChange}
+                    >
+                      <option value="relevance">Most relevant</option>
+                      <option value="date">Updated (newest)</option>
+                      <option value="adate">Updated (oldest)</option>
+                    </select>
+                    <span className={`ds_select-arrow ${styles.selectArrow}`} aria-hidden="true"></span>
+                  </span>
+                </div>
+              </div>
+              <ol className="ds_search-results__list" data-total={filteredResults.length} start={indexOfFirstResult + 1}>
+                {currentResults.map((result) => (
+                  <li key={result.MtrCode} className="ds_search-result">
+                    <h3 className="ds_search-result__title">
+                      <Link
+                        to={{
+                          pathname: `/dataset/${result.MtrCode}`,
+                          state: { fromResults: true, searchQuery: searchQuery },
+                        }}
+                        className="ds_search-result__link"
+                      >
+                        {result.MtrTitle}
+                      </Link>
+                    </h3>
+                    <p className="ds_search-result__summary">
+                      {result.description.length > 150
+                        ? result.description.substring(0, 150) + '...'
+                        : result.description}
+                    </p>
+                    <dl className="ds_search-result__metadata ds_metadata ds_metadata--inline">
+                      <div className="ds_metadata__item">
+                        <dt className="ds_metadata__key">Organization</dt>
+                        <dd className="ds_metadata__value">{result.CprValue || 'Unknown'}</dd>
+                      </div>
+                      <div className="ds_metadata__item">
+                        <dt className="ds_metadata__key">Last Updated</dt>
+                        <dd className="ds_metadata__value">
+                          {new Date(result.RlsLiveDatetimeFrom).toLocaleDateString()}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                ))}
+              </ol>
+              <nav className="ds_pagination" aria-label="Search result pages">
+                <ul className="ds_pagination__list">
+                  <li className="ds_pagination__item">
+                    <button
+                      className="ds_pagination__link"
+                      disabled={currentPage === 1}
+                      onClick={() => paginate(currentPage - 1)}
+                    >
+                      <span className="ds_pagination__link-label">Previous</span>
+                    </button>
+                  </li>
+                  {Array.from({ length: Math.ceil(filteredResults.length / resultsPerPage) }, (_, i) => (
+                    <li key={i + 1} className="ds_pagination__item">
+                      <button
+                        aria-label={`Page ${i + 1}`}
+                        className={`ds_pagination__link ${currentPage === i + 1 ? 'ds_current' : ''}`}
+                        onClick={() => paginate(i + 1)}
+                      >
+                        <span className="ds_pagination__link-label">{i + 1}</span>
+                      </button>
+                    </li>
+                  ))}
+                  <li className="ds_pagination__item">
+                    <button
+                      className="ds_pagination__link"
+                      disabled={currentPage >= Math.ceil(filteredResults.length / resultsPerPage)}
+                      onClick={() => paginate(currentPage + 1)}
+                    >
+                      <span className="ds_pagination__link-label">Next</span>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </main>
       </div>
+      <BackToTop />
     </div>
   );
 };
