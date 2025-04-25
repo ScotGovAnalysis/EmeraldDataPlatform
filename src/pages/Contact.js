@@ -6,7 +6,7 @@ import { Phone, Mail, MapPin } from 'lucide-react';
 const Contact = () => {
   useEffect(() => {
     // Dynamically set the page title
-    document.title = "Cobalt | Contact Us";
+    document.title = "Emerald | Contact Us";
   }, []);
 
   const navigate = useNavigate();

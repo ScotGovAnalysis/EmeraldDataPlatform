@@ -8,7 +8,7 @@ import BackToTop from '../components/BackToTop';
 const Help = () => {
   useEffect(() => {
     // Dynamically set the page title
-    document.title = "Cobalt | Help";
+    document.title = "Emerald | Help";
   }, []);   
   
   
@@ -21,7 +21,7 @@ const Help = () => {
             </header>
 
             <p className="ds_page-header__subtitle">
-              Find answers to common questions and get support for the Cobalt Open Data Portal.
+              Find answers to common questions and get support for the Emerald Open Data Portal.
             </p>
 
           <section className="ds_layout ds_layout--article">

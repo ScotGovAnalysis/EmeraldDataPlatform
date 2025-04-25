@@ -23,7 +23,7 @@ const Datasets = () => {
   const [searchInput, setSearchInput] = useState(searchQuery || '');
 
   useEffect(() => {
-    document.title = 'Cobalt | Datasets';
+    document.title = 'Emerald | Datasets';
     setSearchInput(searchQuery || '');
     if (searchQuery) {
       fetchSearchResults(searchQuery);

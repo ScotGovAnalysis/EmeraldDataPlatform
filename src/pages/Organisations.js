@@ -14,7 +14,7 @@ const Organisations = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'CprValue', direction: 'ascending' });
 
   useEffect(() => {
-    document.title = 'Cobalt | Organisations';
+    document.title = 'Emerald | Organisations';
 
     const fetchOrganisations = async () => {
       try {
@@ -134,7 +134,7 @@ const Organisations = () => {
             <section className="ds_!-margin-bottom-6">
               <h2 className="ds_h3">About Organisations</h2>
               <p className="ds_body-text">
-                Organisations are entities that own and publish datasets on the Cobalt Open Data Portal. Each organisation is responsible for:
+                Organisations are entities that own and publish datasets on the Emerald Open Data Portal. Each organisation is responsible for:
               </p>
               <ul className="ds_list ds_list--bulleted">
                 <li>Maintaining the quality and accuracy of their datasets</li>
@@ -148,7 +148,7 @@ const Organisations = () => {
             </section>
 
             <p className="ds_body-text">
-              Browse organisations that contribute data to the Cobalt Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
+              Browse organisations that contribute data to the Emerald Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
             </p>
 
             {/* Search section with improved spacing */}

@@ -5,7 +5,7 @@ import BackToTop from '../components/BackToTop';
 
 const About = () => {
   useEffect(() => {
-    document.title = "Cobalt | About";
+    document.title = "Emerald | About";
   }, []);
 
   return (
@@ -17,7 +17,7 @@ const About = () => {
           </header>
           <section className="ds_layout ds_layout--article">
           <div className="ds_layout__content">
-          <p className="ds_h3">Cobalt Open Data Portal</p>
+          <p className="ds_h3">Emerald Open Data Portal</p>
           <p>
             The Scottish Government’s Open Data team is running an{' '}
             <a href="https://servicemanual.gov.scot/alpha" className="ds_link">
@@ -26,7 +26,7 @@ const About = () => {
             to build prototypes to test different ideas and explore new approaches for{' '}
             <a href="https://statistics.gov.scot" className="ds_link">
               statistics.gov.scot
-            </a>. Prototypes will be focused on addressing the high priority user needs identified during discovery, as well as addressing the key problems and challenges our users face. This Cobalt Open Data Portal is one of those prototypes.
+            </a>. Prototypes will be focused on addressing the high priority user needs identified during discovery, as well as addressing the key problems and challenges our users face. This Emerald Open Data Portal is one of those prototypes.
           </p>
           </div>
 

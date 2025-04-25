@@ -13,7 +13,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Cobalt | Home';
+    document.title = 'Emerald | Home';
   }, []);
 
   useEffect(() => {

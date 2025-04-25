@@ -78,9 +78,9 @@ const Dataset = () => {
 
   useEffect(() => {
     if (dataset && dataset.label) {
-      document.title = `Cobalt | ${dataset.label}`;
+      document.title = `Emerald | ${dataset.label}`;
     } else {
-      document.title = 'Cobalt | Dataset';
+      document.title = 'Emerald | Dataset';
     }
   }, [dataset]);
 

@@ -4,7 +4,7 @@ import { useEffect, React } from 'react';
 const Privacy = () => {
   useEffect(() => {
     // Dynamically set the page title
-    document.title = "Cobalt | Privacy";
+    document.title = "Emerald | Privacy";
   }, []); 
   
     return (
