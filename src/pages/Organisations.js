@@ -235,7 +235,7 @@ const Organisations = () => {
                     <dl className="ds_search-result__context">
                       <dd className="ds_search-result__context-value">
                         {org.CprUrl && (
-                          <div className="ds_button-group ds_!-margin-top-2">
+                          <div className="ds_button-group" style={{ marginTop: '-3px' }}>
                             <a 
                               href={org.CprUrl} 
                               target="_blank" 

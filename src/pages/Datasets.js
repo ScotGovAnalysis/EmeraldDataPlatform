@@ -144,7 +144,6 @@ const Datasets = () => {
               RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
               CprValue: item.CprValue || cprCode,
               CprCode: item.CprCode || cprCode,
-              description: item.description || 'No description available',
             }))
         : [];
       setResults(datasets);
@@ -542,15 +541,6 @@ const Datasets = () => {
                         {result.MtrTitle}
                       </Link>
                     </h3>
-                    <p className="ds_search-result__summary">
-                      {(() => {
-                        const text = result.description || 'No description available';
-                        const words = text.split(' ');
-                        return words.length > 65
-                          ? words.slice(0, 65).join(' ') + '...'
-                          : text;
-                      })()}
-                    </p>
                     <dl className="ds_search-result__metadata ds_metadata ds_metadata--inline">
                       <div className="ds_metadata__item">
                         <dt className="ds_metadata__key">Organisation</dt>
