@@ -129,7 +129,7 @@ const Datasets = () => {
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: 'PxStat.System.Navigation.Navigation_API.Search',
-          params: { Search: '*', LngIsoCode: 'en' },
+          params: { Search: '', LngIsoCode: 'en' },
           id: Math.floor(Math.random() * 1000000000),
         }),
       });
