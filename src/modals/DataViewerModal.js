@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Download, Filter, ArrowUpDown, X, Settings, RefreshCw, ChevronDown, Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react';
 import styles from '../styles/Embedded_Modal.module.css';
 
-const DataViewerModal = ({ isOpen, onRequestClose, tableData = [] }) => {
+const DataViewerModal = ({ isOpen, onRequestClose, tableData = [], dimensionLabels = {} }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredData, setFilteredData] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
@@ -14,15 +14,15 @@ const DataViewerModal = ({ isOpen, onRequestClose, tableData = [] }) => {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Extract column headers from the first row of data
+  // Extract column headers using dimensionLabels
   const columns = useMemo(() => {
     if (!tableData || !Array.isArray(tableData) || tableData.length === 0) return [];
     return Object.keys(tableData[0]).map(key => ({
       id: key,
-      name: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+      name: key === 'Value' ? 'Value' : (dimensionLabels[key] || key), // Use label if available, else ID
       visible: true
     }));
-  }, [tableData]);
+  }, [tableData, dimensionLabels]);
 
   // Initialize visible columns
   useEffect(() => {
@@ -84,7 +84,7 @@ const DataViewerModal = ({ isOpen, onRequestClose, tableData = [] }) => {
         if (sortConfig.direction === 'ascending') {
           return aString.localeCompare(bString);
         } else {
-          return bString.localeCompare(aString);
+          return bString.localeCompare(bString);
         }
       });
     }
@@ -149,11 +149,12 @@ const DataViewerModal = ({ isOpen, onRequestClose, tableData = [] }) => {
       return newRow;
     });
 
-    const headers = visibleColumns.join(',');
+    const headers = visibleColumns.map(col => 
+      col === 'Value' ? 'Value' : (dimensionLabels[col] || col)
+    ).join(',');
     const csvRows = visibleData.map(row =>
       visibleColumns.map(col => {
         const cell = row[col];
-        // Handle cells with commas, quotes, etc.
         if (cell === null || cell === undefined) return '';
         const cellStr = String(cell);
         return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')

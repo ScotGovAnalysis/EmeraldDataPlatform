@@ -61,17 +61,11 @@ const ChartConfigurationModal = ({ isOpen, onRequestClose, onConfigureChart, dat
       };
     });
   };
-  
-  // Update the JSX to correctly display the count of selected dimensions
-  <span className="text-sm text-gray-500">
-    {selectedDimensions[chartConfig.xAxisDimension]?.length || 0} of {dimensionValues[chartConfig.xAxisDimension]?.length || 0} selected
-  </span>
-  
 
   const addSeries = () => {
     const availableDimensions = Object.keys(dataset.dimension || {})
       .filter(dim => dim !== chartConfig.xAxisDimension)
-      .filter(dim => Object.keys(dataset.dimension[dim].category.label).length > 1); // Only allow dimensions with more than one value
+      .filter(dim => Object.keys(dataset.dimension[dim].category.label).length > 1);
   
     const seriesDimension = availableDimensions[0] || '';
     if (!seriesDimension) return;

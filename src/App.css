@@ -84,3 +84,163 @@
   color: rgba(255, 255, 255, 0.6); /* Equivalent to text-white/60 */
   margin: 0 0.5rem; /* Equivalent to mx-2 */
 }
+
+/* Container styles *//* Date filter specific styles */
+.date-form-group {
+  margin-bottom: 1.5rem;
+}
+
+/* Input container */
+.date-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.date-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* Date input styling */
+.date-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 2px solid #333;
+  border-right: none;
+  height: 48px;
+  font-size: 1rem;
+}
+
+.date-input:focus {
+  outline: 3px solid #ffdd00;
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 2px;
+}
+
+/* Calendar button styling */
+.date-button {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: #0065bd;
+  border: 2px solid #0065bd;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.date-button:hover {
+  background: #00437e;
+  border-color: #00437e;
+}
+
+/* Calendar icon */
+.date-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* Label and hint text */
+.date-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: bold;
+}
+
+.date-hint-text {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+
+/* back to top */
+.custom_back-to-top {
+  transition: all 0.00s ease;
+}
+
+.custom_back-to-top__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0065bd;
+  font-family: Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  padding: 8px 16px;
+  transition: all 0.00s ease;
+  font-weight: bold;
+}
+
+.custom_back-to-top__button:hover {
+  color: #003f87; /* Darker shade for hover */
+}
+
+.custom_back-to-top__icon {
+  margin-left: 8px;
+  fill: #0065bd; /* Matches text color */
+  transition: fill 0.00s ease;
+}
+
+.custom_back-to-top__button:hover .custom_back-to-top__icon {
+  fill: #003f87; /* Matches text hover color */
+}
+
+@media (max-width: 767px) {
+  .custom_back-to-top {
+    position: fixed;
+    right: 10px !important;
+    bottom: 10px !important;
+    top: auto !important;
+  }
+  
+  .custom_back-to-top__button {
+    padding: 6px 12px;
+    font-size: 14px;
+    text-decoration: underline;
+    font-weight: bold;
+  }
+
+  .custom_back-to-top__button:hover {
+    color: #003f87;
+  }
+
+  .custom_back-to-top__button:hover .custom_back-to-top__icon {
+    fill: #003f87;
+  }
+}
+
+/* Add this CSS to your stylesheet */
+@media (max-width: 768px) {
+  .ds_layout--search-results--filters {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ds_layout__sidebar {
+    order: 2; /* Place sidebar below content */
+    width: 100%;
+  }
+
+  .ds_layout__content {
+    order: 1;
+    width: 100%;
+  }
+
+  .ds_layout__list {
+    order: 3;
+    width: 100%;
+  }
+
+  .ds_layout__header {
+    order: 0;
+    width: 100%;
+  }
+}

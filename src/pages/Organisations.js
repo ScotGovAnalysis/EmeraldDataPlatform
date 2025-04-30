@@ -80,8 +80,9 @@ const Organisations = () => {
   });
 
   const filteredOrganisations = sortedOrganisations.filter((org) =>
-    org.CprValue.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.CprCode.toLowerCase().includes(searchTerm.toLowerCase())
+    (org.CprValue.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     org.CprCode.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (!config.pxFilter || org.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
   );
 
   const sampleOrganisations = [
@@ -119,7 +120,6 @@ const Organisations = () => {
       <div className="ds_wrapper">
         <main className="ds_layout ds_layout--search-results">
           <div className="ds_layout__header">
-            {/* Fixed breadcrumbs and header layout - added clear separation */}
             <header className="ds_page-header">
               <div className="ds_page-header__title-wrapper">
                 <h1 className="ds_page-header__title">
@@ -130,8 +130,7 @@ const Organisations = () => {
           </div>
 
           <div className="ds_layout__content ds_layout__content--standard-grid">
-            {/* About organizations section moved to top - better context before seeing list */}
-            <section className="ds_!-margin-bottom-6">
+            <section className="ds_!-margin-bottom-4">
               <h2 className="ds_h3">About Organisations</h2>
               <p className="ds_body-text">
                 Organisations are entities that own and publish datasets on the Emerald Open Data Portal. Each organisation is responsible for:
@@ -147,12 +146,13 @@ const Organisations = () => {
               </p>
             </section>
 
-            <p className="ds_body-text">
-              Browse organisations that contribute data to the Emerald Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
-            </p>
+            <div className="ds_!-margin-bottom-4">
+              <p className="ds_body-text">
+                Browse organisations that contribute data to the Emerald Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
+              </p>
+            </div>
 
-            {/* Search section with improved spacing */}
-            <div className="ds_site-search ds_!-margin-top-4 ds_!-margin-bottom-6">
+            <div className="ds_site-search ds_!-margin-bottom-4">
               <form role="search" className="ds_site-search__form" onSubmit={(e) => e.preventDefault()}>
                 <label className="ds_label" htmlFor="org-search">Search organisations</label>
                 <div className="ds_input__wrapper ds_input__wrapper--has-icon">
@@ -215,7 +215,6 @@ const Organisations = () => {
                 </form>
               </div>
               
-              {/* Results list with improved spacing for actions */}
               <ol className="ds_search-results__list" data-total={filteredOrganisations.length} start="1" id="search-results">
                 {filteredOrganisations.map((org) => (
                   <li key={org.CprCode} className="ds_search-result">
@@ -234,25 +233,24 @@ const Organisations = () => {
                       </div>
                     </dl>
                     <dl className="ds_search-result__context">
-                      <dt className="ds_search-result__context-key">Actions:</dt>
                       <dd className="ds_search-result__context-value">
                         {org.CprUrl && (
-                          <>
-                            <a
-                              href={org.CprUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="ds_button ds_button--small ds_button--secondary ds_!-margin-right-2"
+                          <div className="ds_button-group ds_!-margin-top-2">
+                            <a 
+                              href={org.CprUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="ds_button ds_button--secondary ds_button--small"
                             >
                               Visit Website
                             </a>
                             <Link 
                               to={`/datasets?org=${org.CprCode}`} 
-                              className="ds_button ds_button--small ds_button--secondary"
+                              className="ds_button ds_button--primary ds_button--small"
                             >
                               View Datasets
                             </Link>
-                          </>
+                          </div>
                         )}
                       </dd>
                     </dl>
@@ -271,9 +269,9 @@ const Organisations = () => {
               </nav>
             </div>
           </div>
+          <BackToTop />
         </main>
       </div>
-      <BackToTop />
     </div>
   );
 };

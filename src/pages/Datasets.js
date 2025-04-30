@@ -5,12 +5,16 @@ import config from '../config';
 import styles from '../styles/Design_Style.module.css';
 import BackToTop from '../components/BackToTop';
 import { PropagateLoader } from 'react-spinners';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import '../styles/Design_Style.module.css';
 
 const Datasets = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get('q');
+  const orgCode = queryParams.get('org');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,16 +25,28 @@ const Datasets = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(10);
   const [searchInput, setSearchInput] = useState(searchQuery || '');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
     document.title = 'Emerald | Datasets';
     setSearchInput(searchQuery || '');
-    if (searchQuery) {
+    if (orgCode) {
+      fetchDatasetsByOrganisation(orgCode);
+    } else if (searchQuery) {
       fetchSearchResults(searchQuery);
     } else {
       fetchDefaultDatasets();
     }
-  }, [searchQuery]);
+  }, [searchQuery, orgCode]);
+
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   const fetchDefaultDatasets = async () => {
     setLoading(true);
@@ -52,10 +68,14 @@ const Datasets = () => {
         MtrTitle: item.label || 'Untitled Dataset',
         RlsLiveDatetimeFrom: item.updated || new Date().toISOString(),
         CprValue: item.extension?.copyright?.name || 'Unknown',
+        CprCode: item.extension?.copyright?.code || 'UNKNOWN',
         description: item.description || 'No description available',
       })) || [];
       setResults(datasets);
-      setOrganizationOptions([...new Set(datasets.map((item) => item.CprValue).filter(Boolean))]);
+      setOrganizationOptions([...new Set(datasets
+        .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
+        .map((item) => item.CprValue)
+        .filter(Boolean))]);
       setLoading(false);
     } catch (error) {
       setError(error);
@@ -84,11 +104,54 @@ const Datasets = () => {
             MtrTitle: item.MtrTitle || 'Untitled Dataset',
             RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
             CprValue: item.CprValue || 'Unknown',
+            CprCode: item.CprCode || 'UNKNOWN',
             description: item.description || 'No description available',
           }))
         : [];
       setResults(searchResults);
-      setOrganizationOptions([...new Set(searchResults.map((item) => item.CprValue).filter(Boolean))]);
+      setOrganizationOptions([...new Set(searchResults
+        .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
+        .map((item) => item.CprValue)
+        .filter(Boolean))]);
+      setLoading(false);
+    } catch (error) {
+      setError(error);
+      setLoading(false);
+    }
+  };
+
+  const fetchDatasetsByOrganisation = async (cprCode) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'PxStat.System.Navigation.Navigation_API.Search',
+          params: { Search: '*', LngIsoCode: 'en' },
+          id: Math.floor(Math.random() * 1000000000),
+        }),
+      });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      const datasets = Array.isArray(data.result)
+        ? data.result
+            .filter(item => item.CprCode && item.CprCode.toLowerCase() === cprCode.toLowerCase())
+            .map((item) => ({
+              MtrCode: item.MtrCode || 'unknown',
+              MtrTitle: item.MtrTitle || 'Untitled Dataset',
+              RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
+              CprValue: item.CprValue || cprCode,
+              CprCode: item.CprCode || cprCode,
+              description: item.description || 'No description available',
+            }))
+        : [];
+      setResults(datasets);
+      setOrganizationOptions([...new Set(datasets
+        .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
+        .map((item) => item.CprValue)
+        .filter(Boolean))]);
       setLoading(false);
     } catch (error) {
       setError(error);
@@ -114,12 +177,9 @@ const Datasets = () => {
     );
   };
 
-  const handleDateRangeChange = (index, value) => {
-    setSelectedDateRange((prev) => {
-      const newRange = [...prev];
-      newRange[index] = value;
-      return newRange;
-    });
+  const handleDateRangeChange = (dates) => {
+    const [start, end] = dates;
+    setSelectedDateRange([start, end]);
   };
 
   const filteredResults = results.filter((result) => {
@@ -128,15 +188,17 @@ const Datasets = () => {
     const dateMatch =
       selectedDateRange[0] === null ||
       selectedDateRange[1] === null ||
-      (new Date(result.RlsLiveDatetimeFrom) >= new Date(selectedDateRange[0]) &&
-       new Date(result.RlsLiveDatetimeFrom) <= new Date(selectedDateRange[1]));
-    return orgMatch && dateMatch;
+      (new Date(result.RlsLiveDatetimeFrom) >= selectedDateRange[0] &&
+       new Date(result.RlsLiveDatetimeFrom) <= selectedDateRange[1]);
+    const cprMatch = !config.pxFilter || result.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase());
+    return orgMatch && dateMatch && cprMatch;
   });
 
   const getOrganizationCounts = () => {
     return organizationOptions.map((org) => ({
       name: org,
-      count: results.filter((result) => result.CprValue === org).length,
+      count: results.filter((result) => result.CprValue === org && 
+        (!config.pxFilter || result.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))).length,
     }));
   };
 
@@ -152,6 +214,17 @@ const Datasets = () => {
       navigate(`/datasets?q=${encodeURIComponent(searchInput.trim())}`);
     } else {
       navigate('/datasets');
+    }
+  };
+
+  const toggleMobileFilters = () => {
+    setShowMobileFilters(!showMobileFilters);
+  };
+
+  const toggleAccordion = (id) => {
+    const accordionControl = document.getElementById(id);
+    if (accordionControl) {
+      accordionControl.checked = !accordionControl.checked;
     }
   };
 
@@ -184,51 +257,61 @@ const Datasets = () => {
           <div className="ds_layout__header">
             <header className="ds_page-header">
               <h1 className="ds_page-header__title">
-                {searchQuery ? `Search results for "${searchQuery}"` : 'Datasets'}
+                {searchQuery ? `Search results for "${searchQuery}"` : orgCode ? `Datasets for ${orgCode}` : 'Datasets'}
               </h1>
             </header>
           </div>
           <div className="ds_layout__content">
-            <div className="ds_site-search">
-              <form
-                action="/datasets"
-                role="search"
-                className="ds_site-search__form"
-                method="GET"
-                onSubmit={handleSearchSubmit}
+            {isMobile && (
+              <button
+                onClick={toggleMobileFilters}
+                className="ds_button ds_button--secondary ds_button--small"
+                style={{ marginBottom: '1rem', width: '100%' }}
               >
-                <label className="ds_label visually-hidden" htmlFor="site-search">
-                  Search
-                </label>
-                <div className="ds_input__wrapper ds_input__wrapper--has-icon">
-                  <input
-                    name="q"
-                    required
-                    id="site-search"
-                    className="ds_input ds_site-search__input"
-                    type="search"
-                    placeholder="Search datasets..."
-                    autoComplete="off"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                  />
-                  <button type="submit" className="ds_button js-site-search-button">
-                    <span className="visually-hidden">Search</span>
-                    <svg
-                      className="ds_icon ds_icon--24"
-                      aria-hidden="true"
-                      role="img"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                    </svg>
-                  </button>
-                </div>
-              </form>
-            </div>
+                {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+            )}
           </div>
-          <div className="ds_layout__sidebar">
+          <div className="ds_layout__sidebar" style={{ display: isMobile && !showMobileFilters ? 'none' : 'block' }}>
             <div className="ds_search-filters">
+              <h3 className="ds_search-filters__title ds_h4">Search</h3>
+              <div className="ds_site-search" style={{ marginBottom: '1rem' }}>
+                <form
+                  action="/datasets"
+                  role="search"
+                  className="ds_site-search__form"
+                  method="GET"
+                  onSubmit={handleSearchSubmit}
+                >
+                  <label className="ds_label visually-hidden" htmlFor="site-search">
+                    Search
+                  </label>
+                  <div className="ds_input__wrapper ds_input__wrapper--has-icon">
+                    <input
+                      name="q"
+                      required
+                      id="site-search"
+                      className="ds_input ds_site-search__input"
+                      type="search"
+                      placeholder="Search"
+                      autoComplete="off"
+                      defaultValue={searchQuery || ''}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                    />
+                    <button type="submit" className="ds_button js-site-search-button">
+                      <span className="visually-hidden">Search</span>
+                      <svg
+                        className="ds_icon ds_icon--24"
+                        aria-hidden="true"
+                        role="img"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+              </div>
               <div className="ds_details ds_no-margin" data-module="ds-details">
                 <input id="filters-toggle" type="checkbox" className="ds_details__toggle visually-hidden" />
                 <label htmlFor="filters-toggle" className="ds_details__summary">
@@ -317,45 +400,73 @@ const Datasets = () => {
                           </label>
                         </div>
                         <div className="ds_accordion-item__body">
-                          <fieldset id="filter-date-range" className="filters__fieldset">
+                          <fieldset id="filter-date-range">
                             <legend className="visually-hidden">Filter by date</legend>
-                            <div className="ds_question">
-                              <div data-module="ds-datepicker" className="ds_datepicker">
-                                <label className="ds_label ds_no-margin--bottom" htmlFor="date-from">
-                                  Updated after
+                            <div className="date-form-group">
+                              <div className="date-datepicker">
+                                <label className="date-label" htmlFor="date-from">
+                                  Start date
                                 </label>
-                                <p className="ds_hint-text ds_!_margin-bottom--1">
-                                  For example, 21/01/2022
+                                <p className="date-hint-text">
+                                  For example, 31/01/2025
                                 </p>
-                                <div className="ds_input__wrapper">
-                                  <input
-                                    name="begin"
-                                    id="date-from"
-                                    type="date"
-                                    className="ds_input ds_input--fixed-10"
-                                    value={selectedDateRange[0] || ''}
-                                    onChange={(e) => handleDateRangeChange(0, e.target.value)}
-                                  />
+                                <div className="date-input-container">
+                                  <div className="date-input-wrapper">
+                                    <DatePicker
+                                      id="date-from"
+                                      selected={selectedDateRange[0]}
+                                      onChange={(date) => handleDateRangeChange([date, selectedDateRange[1]])}
+                                      dateFormat="dd/MM/yyyy"
+                                      placeholderText="dd/mm/yyyy"
+                                      className="date-input"
+                                      showMonthDropdown
+                                      showYearDropdown
+                                      dropdownMode="select"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="date-button"
+                                      aria-label="Choose start date"
+                                    >
+                                      <svg className="date-icon" aria-hidden="true">
+                                        <use xlinkHref="/assets/images/icons/icons.stack.svg#calendar_today"></use>
+                                      </svg>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                            <div className="ds_question">
-                              <div data-module="ds-datepicker" className="ds_datepicker">
-                                <label className="ds_label ds_no-margin--bottom" htmlFor="date-to">
-                                  Updated before
+                            <div className="date-form-group">
+                              <div className="date-datepicker">
+                                <label className="date-label" htmlFor="date-to">
+                                  End date
                                 </label>
-                                <p className="ds_hint-text ds_!_margin-bottom--1">
-                                  For example, 21/01/2022
+                                <p className="date-hint-text">
+                                  For example, 31/03/2025
                                 </p>
-                                <div className="ds_input__wrapper">
-                                  <input
-                                    name="end"
-                                    id="date-to"
-                                    type="date"
-                                    className="ds_input ds_input--fixed-10"
-                                    value={selectedDateRange[1] || ''}
-                                    onChange={(e) => handleDateRangeChange(1, e.target.value)}
-                                  />
+                                <div className="date-input-container">
+                                  <div className="date-input-wrapper">
+                                    <DatePicker
+                                      id="date-to"
+                                      selected={selectedDateRange[1]}
+                                      onChange={(date) => handleDateRangeChange([selectedDateRange[0], date])}
+                                      dateFormat="dd/MM/yyyy"
+                                      placeholderText="dd/mm/yyyy"
+                                      className="date-input"
+                                      showMonthDropdown
+                                      showYearDropdown
+                                      dropdownMode="select"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="date-button"
+                                      aria-label="Choose end date"
+                                    >
+                                      <svg className="date-icon" aria-hidden="true">
+                                        <use xlinkHref="/assets/images/icons/icons.stack.svg#calendar_today"></use>
+                                      </svg>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -379,7 +490,9 @@ const Datasets = () => {
               <h2 aria-live="polite" className="ds_search-results__title">
                 {searchQuery
                   ? `${filteredResults.length} result${filteredResults.length !== 1 ? 's' : ''} for "${searchQuery}"`
-                  : `Showing latest ${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''}`}
+                  : orgCode 
+                    ? `${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''} for ${orgCode}`
+                    : `Showing latest ${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''}`}
               </h2>
               <hr className="ds_search-results__divider" />
               <div className="ds_search-controls">
@@ -391,111 +504,6 @@ const Datasets = () => {
                       </a>
                     </li>
                   </ul>
-                </div>
-                <div className="ds_facets">
-                  <p className="visually-hidden">
-                    There are{' '}
-                    {selectedOrganizations.length + (selectedDateRange[0] || selectedDateRange[1] ? 1 : 0)}{' '}
-                    search filters applied
-                  </p>
-                  <dl className="ds_facets__list">
-                    {selectedOrganizations.length > 0 && (
-                      <div className="ds_facet-group">
-                        <dt className="ds_facet__group-title">Organisation:</dt>
-                        {selectedOrganizations.map((org) => (
-                          <dd key={org} className="ds_facet-wrapper">
-                            <span className="ds_facet">
-                              {org}
-                              <button
-                                type="button"
-                                aria-label={`Remove '${org}' filter`}
-                                className="ds_facet__button"
-                                onClick={() => handleOrganizationFilter(org)}
-                              >
-                                <svg
-                                  className="ds_facet__button-icon"
-                                  aria-hidden="true"
-                                  role="img"
-                                  focusable="false"
-                                >
-                                  <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
-                                </svg>
-                              </button>
-                            </span>
-                          </dd>
-                        ))}
-                      </div>
-                    )}
-                    {(selectedDateRange[0] || selectedDateRange[1]) && (
-                      <div className="ds_facet-group">
-                        <dt className="ds_facet__group-title">Updated between:</dt>
-                        {selectedDateRange[0] && (
-                          <dd className="ds_facet-wrapper">
-                            <span className="ds_facet">
-                              {new Date(selectedDateRange[0]).toLocaleDateString('en-GB')}
-                              <button
-                                type="button"
-                                aria-label={`Remove 'updated after ${selectedDateRange[0]}' filter`}
-                                className="ds_facet__button"
-                                onClick={() => handleDateRangeChange(0, null)}
-                              >
-                                <svg
-                                  className="ds_facet__button-icon"
-                                  aria-hidden="true"
-                                  role="img"
-                                  focusable="false"
-                                >
-                                  <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
-                                </svg>
-                              </button>
-                            </span>
-                          </dd>
-                        )}
-                        {selectedDateRange[1] && (
-                          <dd className="ds_facet-wrapper">
-                            {selectedDateRange[0] && ' and '}
-                            <span className="ds_facet">
-                              {new Date(selectedDateRange[1]).toLocaleDateString('en-GB')}
-                              <button
-                                type="button"
-                                aria-label={`Remove 'updated before ${selectedDateRange[1]}' filter`}
-                                className="ds_facet__button"
-                                onClick={() => handleDateRangeChange(1, null)}
-                              >
-                                <svg
-                                  className="ds_facet__button-icon"
-                                  aria-hidden="true"
-                                  role="img"
-                                  focusable="false"
-                                >
-                                  <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
-                                </svg>
-                              </button>
-                            </span>
-                          </dd>
-                        )}
-                      </div>
-                    )}
-                  </dl>
-                  {(selectedOrganizations.length > 0 || selectedDateRange[0] || selectedDateRange[1]) && (
-                    <button
-                      className="ds_facets__clear-button ds_button ds_button--secondary"
-                      onClick={() => {
-                        setSelectedOrganizations([]);
-                        setSelectedDateRange([null, null]);
-                      }}
-                    >
-                      Clear all filters
-                      <svg
-                        className="ds_facet__button-icon"
-                        aria-hidden="true"
-                        role="img"
-                        focusable="false"
-                      >
-                        <use href="/assets/images/icons/icons.stack.svg#cancel"></use>
-                      </svg>
-                    </button>
-                  )}
                 </div>
                 <div className="ds_sort-options">
                   <label className="ds_label" htmlFor="sort-by">
@@ -598,9 +606,9 @@ const Datasets = () => {
               </nav>
             </div>
           </div>
+          <BackToTop />
         </main>
       </div>
-      <BackToTop />
     </div>
   );
 };

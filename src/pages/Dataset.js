@@ -86,18 +86,27 @@ const Dataset = () => {
 
   const handleViewClick = async () => {
     try {
+      // Check if no dimensions are selected
+      if (Object.keys(selectedDimensions).length === 0) {
+        alert('Please select at least one dimension');
+        return;
+      }
+  
       const dimensions = {};
+      let hasSelectedValues = false;
       Object.keys(selectedDimensions).forEach((key) => {
         if (selectedDimensions[key]?.length > 0) {
           dimensions[key] = { category: { index: selectedDimensions[key] } };
+          hasSelectedValues = true;
         }
       });
-
-      if (Object.keys(dimensions).length === 0) {
-        setError('Please select at least one option from each dimension');
+  
+      // Check if no dimension values are selected
+      if (!hasSelectedValues) {
+        alert('Please select at least one option from a dimension');
         return;
       }
-
+  
       const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,10 +130,10 @@ const Dataset = () => {
           id: 677981009,
         }),
       });
-
+  
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
-
+  
       const parsedData = parseJsonStat(data.result);
       setTableData(parsedData);
       setError(null);
@@ -133,78 +142,73 @@ const Dataset = () => {
       setError('An error occurred while fetching the dataset: ' + (err.message || 'Please try again.'));
     }
   };
+  
 
-  const parseJsonStat = (jsonStat) => {
-    const { dimension, value, size, id } = jsonStat;
+// Parse JSON-stat data into a table format for DataViewerModal
+const parseJsonStat = (jsonStat) => {
+  if (!jsonStat || !jsonStat.dimension || !jsonStat.value) {
+    console.error('Invalid JSON-stat data:', jsonStat);
+    return [];
+  }
 
-    if (!dimension || !value || !size || !id) {
-      console.error('Invalid JSON-stat structure');
-      return [];
-    }
+  const { dimension, value, id, size } = jsonStat;
+  const dimIds = id || [];
+  const dimSizes = size || [];
+  const dimCategories = {};
 
-    const getPosition = (indices) => {
-      let position = 0;
+  // Map dimension IDs to their category labels
+  dimIds.forEach((dimId) => {
+    dimCategories[dimId] = dimension[dimId]?.category?.label || {};
+  });
+
+  // Generate all possible combinations of dimension indices
+  const tableData = [];
+  const indices = new Array(dimIds.length).fill(0);
+
+  const generateRows = (dimIndex, currentRow) => {
+    if (dimIndex >= dimIds.length) {
+      // Calculate flat index for value
+      let flatIndex = 0;
       let multiplier = 1;
-
-      for (let i = indices.length - 1; i >= 0; i--) {
-        position += indices[i] * multiplier;
-        multiplier *= size[i];
+      for (let i = dimIds.length - 1; i >= 0; i--) {
+        flatIndex += indices[i] * multiplier;
+        multiplier *= dimSizes[i];
       }
 
-      return position;
-    };
-
-    const generateRows = (dimensionIndices = [], currentDimension = 0) => {
-      if (currentDimension >= id.length) {
-        const position = getPosition(dimensionIndices);
-        const row = {};
-
-        id.forEach((dimId, index) => {
-          const dim = dimension[dimId];
-          const categoryIndex = dim.category.index[dimensionIndices[index]];
-          row[dimId] = dim.category.label[categoryIndex];
-        });
-
-        row['Value'] = position < value.length ? value[position] : null;
-
-        return [row];
-      }
-
-      const dimId = id[currentDimension];
-      const dim = dimension[dimId];
-      const results = [];
-
-      for (let i = 0; i < dim.category.index.length; i++) {
-        const newIndices = [...dimensionIndices];
-        newIndices[currentDimension] = i;
-        const rows = generateRows(newIndices, currentDimension + 1);
-        results.push(...rows);
-      }
-
-      return results;
-    };
-
-    const tableData = generateRows();
-    return tableData;
-  };
-
-  const handleApiClick = async () => {
-    try {
-      const response = await fetch(dataset.href);
-      const data = await response.json();
-      setApiData(data);
-      setIsApiModalOpen(true);
-    } catch (err) {
-      setError('An error occurred while fetching the API data: ' + (err.message || 'Please try again.'));
+      // Create row with dimension codes and value
+      const row = { ...currentRow, Value: value[flatIndex] || null };
+      tableData.push(row);
+      return;
     }
+
+    const dimId = dimIds[dimIndex];
+    const categories = Object.keys(dimCategories[dimId]);
+    categories.forEach((code, index) => {
+      indices[dimIndex] = index;
+      generateRows(dimIndex + 1, { ...currentRow, [dimId]: code });
+    });
   };
 
-  const handleConfigureChart = (config) => {
-    setChartConfig(config);
-    setIsChartConfigOpen(false);
-    setIsChartRenderOpen(true);
-  };
+  generateRows(0, {});
+  return tableData;
+};
+const handleApiClick = async () => {
+  try {
+    const response = await fetch(dataset.href);
+    const data = await response.json();
+    setApiData(data);
+    setIsApiModalOpen(true);
+  } catch (err) {
+    setError('An error occurred while fetching the API data: ' + (err.message || 'Please try again.'));
+  }
+};
 
+// Handle chart configuration submission from ChartConfigurationModal
+const handleConfigureChart = (config) => {
+  setChartConfig(config);
+  setIsChartConfigOpen(false);
+  setIsChartRenderOpen(true);
+};
   const handleDimensionToggle = (dimensionKey) => {
     setOpenDimension(openDimension === dimensionKey ? null : dimensionKey);
     setSearchQuery('');
@@ -342,19 +346,19 @@ const Dataset = () => {
               <dl className="ds_metadata">
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Organisation</dt>
-                  <dd className="ds_metadata__value">{extension.copyright?.name || 'Not specified'}</dd>
+                  <dd className="ds_metadata__value">{' '}{extension.copyright?.name || 'Not specified'}</dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Published</dt>
-                  <dd className="ds_metadata__value">{formatDate(updated)}</dd>
+                  <dd className="ds_metadata__value">{' '}{formatDate(updated)}</dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Last Updated</dt>
-                  <dd className="ds_metadata__value">{formatDate(updated)}</dd>
+                  <dd className="ds_metadata__value">{' '}{formatDate(updated)}</dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Contact</dt>
-                  <dd className="ds_metadata__value">
+                  <dd className="ds_metadata__value">{' '}
                     {extension.contact?.email ? (
                       <a href={`mailto:${extension.contact.email}`} className="ds_link">
                         {extension.contact.email}
@@ -366,11 +370,11 @@ const Dataset = () => {
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Subject</dt>
-                  <dd className="ds_metadata__value">{extension.subject?.value || 'Not specified'}</dd>
+                  <dd className="ds_metadata__value">{' '}{extension.subject?.value || 'Not specified'}</dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Product</dt>
-                  <dd className="ds_metadata__value">{extension.product?.value || 'Not specified'}</dd>
+                  <dd className="ds_metadata__value">{' '}{extension.product?.value || 'Not specified'}</dd>
                 </div>
               </dl>
               <hr />
@@ -379,7 +383,7 @@ const Dataset = () => {
                 <a
                   key={index}
                   href={item.href}
-                  className="w-full mb-4 p-4 bg-gray-50 hover:bg-gray-100 transition-colors duration-150 flex items-center justify-between rounded-lg"
+                  className="w-full mb-4 p-4 bg-gray-50 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-between rounded-lg shadow-sm"
                 >
                   <div className="flex items-center">
                     {item.type === 'text/csv' ? (
@@ -441,43 +445,43 @@ const Dataset = () => {
                     const hasManyRecords = Object.keys(value.category?.label || {}).length > 100;
 
                     return (
-                      <div key={key} className="border border-gray-100 overflow-hidden">
+                      <div key={key} className="bg-gray-50 rounded-lg shadow-sm overflow-hidden">
                         <button
                           onClick={() => handleDimensionToggle(key)}
-                          className="w-full px-6 py-4 bg-white hover:bg-gray-50 transition-colors duration-150 flex justify-between items-center"
+                          className="w-full px-6 py-4 bg-gray-50 hover:bg-gray-200 transition-colors duration-150 flex justify-between items-center"
                         >
                           <div>
-                            <div className="text-left text-gray-800 font-medium">{value.label}</div>
+                            <div className="text-left text-gray-900 font-semibold">{value.label}</div>
                             {selectedDimensions[key]?.length > 0 && (
-                              <div className="text-sm text-gray-500 mt-1">
+                              <div className="text-sm text-gray-700 mt-1">
                                 {selectedDimensions[key]?.length} selected
                               </div>
                             )}
                           </div>
                           <ChevronDown
                             size={20}
-                            className={`text-gray-400 transition-transform duration-200 ${
+                            className={`text-gray-700 transition-transform duration-200 ${
                               openDimension === key ? 'transform rotate-180' : ''
                             }`}
                           />
                         </button>
                         {openDimension === key && (
-                          <div className="border-t border-gray-100">
-                            <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                              <div className="text-sm text-gray-500">
+                          <div className="border-t border-gray-300">
+                            <div className="p-4 bg-gray-100 border-b border-gray-300 flex justify-between items-center">
+                              <div className="text-sm text-gray-700">
                                 {selectedDimensions[key]?.length || 0} of{' '}
                                 {Object.keys(value.category?.label || {}).length} selected
                               </div>
                               <div className="flex items-center space-x-4">
                                 <button
                                   onClick={() => handleSelectAll(key, value.category?.label)}
-                                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                  className="text-sm text-blue-700 hover:text-blue-900 font-semibold"
                                 >
                                   Select all
                                 </button>
                                 <button
                                   onClick={() => handleClearAll(key)}
-                                  className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                                  className="text-sm text-gray-700 hover:text-gray-900 font-semibold"
                                 >
                                   Clear all
                                 </button>
@@ -485,16 +489,16 @@ const Dataset = () => {
                             </div>
                             <div className="max-h-64 overflow-y-auto">
                               {hasManyRecords && (
-                                <div className="p-4 border-b border-gray-100">
+                                <div className="p-4 border-b border-gray-300">
                                   <div className="relative">
                                     <input
                                       type="text"
                                       placeholder="Search..."
                                       value={searchQuery}
                                       onChange={(e) => setSearchQuery(e.target.value)}
-                                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      className="w-full pl-10 pr-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white text-gray-900"
                                     />
-                                    <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+                                    <Search size={18} className="absolute left-3 top-2.5 text-gray-700" />
                                   </div>
                                 </div>
                               )}
@@ -513,18 +517,18 @@ const Dataset = () => {
                                     <div key={code} className="flex items-center">
                                       <button
                                         onClick={() => handleDimensionSelect(key, code, !isSelected)}
-                                        className={`flex items-center w-full p-2 rounded hover:bg-gray-100 transition-colors duration-150 ${
-                                          isSelected ? 'bg-blue-50' : ''
+                                        className={`flex items-center w-full p-2 rounded hover:bg-gray-200 transition-colors duration-150 ${
+                                          isSelected ? 'bg-blue-100' : ''
                                         }`}
                                       >
                                         <div
                                           className={`w-5 h-5 rounded flex items-center justify-center ${
-                                            isSelected ? 'bg-blue-600' : 'border border-gray-300'
+                                            isSelected ? 'bg-blue-700' : 'border border-gray-400'
                                           }`}
                                         >
                                           {isSelected && <Check size={14} className="text-white" />}
                                         </div>
-                                        <span className="ml-3 text-gray-700 text-sm whitespace-normal text-left">
+                                        <span className="ml-3 text-gray-900 text-sm font-medium whitespace-normal text-left">
                                           {label}
                                         </span>
                                       </button>
@@ -562,7 +566,7 @@ const Dataset = () => {
                     API
                   </button>
                 </div>
-                {error && <div className="mt-4 text-red-500 text-sm">{error}</div>}
+                {error && <div className="mt-4 text-red-600 font-semibold">{error}</div>}
               </section>
               <hr />
               <section className={styles.section}>
@@ -667,6 +671,9 @@ const Dataset = () => {
             isOpen={isTableModalOpen}
             onRequestClose={() => setIsTableModalOpen(false)}
             tableData={tableData}
+            dimensionLabels={Object.fromEntries(
+              Object.entries(dimension || {}).map(([key, value]) => [key, value.label])
+            )}
           />
         </main>
       </div>

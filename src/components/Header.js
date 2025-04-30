@@ -54,7 +54,7 @@ const Header = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/results?q=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/datasets?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
     }
   };
