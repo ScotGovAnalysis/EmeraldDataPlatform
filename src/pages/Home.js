@@ -39,7 +39,7 @@ const Home = () => {
           label: theme.ThmValue,
           href: `/datasets?q=${encodeURIComponent(theme.ThmValue)}`,
         }));
-        setQuickLinks(extractedLinks.slice(0, 6));
+        setQuickLinks(extractedLinks.slice(0, 3)); // Limit to 3 items
       } catch (error) {
         setError(error.message);
       } finally {
@@ -64,17 +64,28 @@ const Home = () => {
     { label: 'energy', href: '/datasets?q=energy' },
   ];
 
+  useEffect(() => {
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+      mainContent.classList.remove('overflow-auto');
+    }
+  }, []);
+
   return (
     <div className="ds_page__middle">
-      <main id="main-content">
-        <div
+<main id="main-content">
+          <div
           className="ds_cb ds_cb--blue relative"
           style={{
             backgroundImage: 'url(/assets/images/edinburgh_skyline.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            width: '100%',
+            width: '100vw', // Ensure full width
             padding: '2rem 0',
+            left: '50%',
+            right: '50%',
+            marginLeft: '-50vw',
+            marginRight: '-50vw',
           }}
         >
           <div className="absolute inset-0 bg-blue-900/60"></div>
@@ -82,9 +93,11 @@ const Home = () => {
             <div className="ds_cb__inner ds_cb__inner--spacious">
               <div className="ds_layout">
                 <div className="ds_layout__content">
-                  <h1 className="ds_page-header__title" style={{ color: '#FFFFFF', marginBottom: '12.5px' }}>
-                    Open access to Scotland's data
-                  </h1>
+                  <div style={{ marginTop: '2rem' }}> {/* Add margin above the text */}
+                    <h1 className="ds_page-header__title" style={{ color: '#FFFFFF', marginBottom: '12.5px' }}>
+                      Open access to Scotland's data
+                    </h1>
+                  </div>
                   <p className="ds_lead" style={{ color: '#FFFFFF' }}>
                     Find and access <strong><u><Link to="/datasets" style={{ color: '#FFFFFF' }}>datasets</Link></u></strong> from the Scottish Government and its agencies. Explore data by <strong><u><Link to="/themes" style={{ color: '#FFFFFF' }}>theme</Link></u></strong> or <strong><u><Link to="/organisations" style={{ color: '#FFFFFF' }}>organisations</Link></u></strong>. For assistance, <strong><u><Link to="/help" style={{ color: '#FFFFFF' }}>help</Link></u></strong> is available or <strong><u><Link to="/contact" style={{ color: '#FFFFFF' }}>contact us</Link></u></strong>.
                   </p>
@@ -138,7 +151,7 @@ const Home = () => {
                         </form>
                       </div>
                     </div>
-                    <div className="mt-4 p-4 bg-white/20 backdrop-blur-sm rounded-md">
+                    <div className="mt-4 p-4 bg-white/20 backdrop-blur-sm rounded-md" style={{ marginBottom: '2rem' }}> {/* Add margin below the top searches */}
                       <span className="text-sm font-bold text-gray-200">Top searches:</span>
                       <div className="flex items-center space-x-4">
                         {topSearches.map((item, index) => (
@@ -224,36 +237,6 @@ const Home = () => {
               </ul>
             </nav>
           </div>
-        </div>
-
-        <div className="ds_wrapper" style={{ marginTop: '1.5rem' }}>
-          {loading ? (
-            <p className="ds_hint-text" style={{ marginTop: '1rem', fontSize: '0.875rem' }}>
-              Loading popular tags...
-            </p>
-          ) : error ? (
-            <p className="ds_hint-text" style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'red' }}>
-              Error: {error}
-            </p>
-          ) : (
-            <div style={{ marginTop: '0.5rem' }}>
-              <h3 className="ds_h3">Popular Tags</h3>
-              <div
-                className={styles.sgTagList}
-                style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '-0.5rem' }}
-              >
-                {quickLinks.map((link, index) => (
-                  <Link
-                    key={index}
-                    to={link.href}
-                    className={styles.sgTag}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>
