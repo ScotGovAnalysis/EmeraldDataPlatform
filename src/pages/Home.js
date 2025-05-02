@@ -12,6 +12,28 @@ const Home = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  const allowedThemes = [
+    "Access to Services",
+    "Business, Enterprise and Energy",
+    "Children and Young People",
+    "Community Wellbeing and Social Environment",
+    "Crime and Justice",
+    "Economic Activity, Benefits and Tax Credits",
+    "Economy",
+    "Education, Skills and Training",
+    "Environment",
+    "Farming and Rural",
+    "Geography",
+    "Health and Social Care",
+    "Housing",
+    "Labour Force",
+    "Management Information",
+    "Population",
+    "Reference",
+    "Scottish Index of Multiple Deprivation",
+    "Transport"
+  ];
+
   useEffect(() => {
     document.title = 'Emerald | Home';
   }, []);
@@ -33,11 +55,12 @@ const Home = () => {
         });
         if (!response.ok) throw new Error('Failed to fetch themes');
         const data = await response.json();
-        setThemes(data.result);
+        const filteredThemes = data.result.filter(theme => allowedThemes.includes(theme.ThmValue));
+        setThemes(filteredThemes);
 
-        const extractedLinks = data.result.map((theme) => ({
+        const extractedLinks = filteredThemes.map((theme) => ({
           label: theme.ThmValue,
-          href: `/datasets?q=${encodeURIComponent(theme.ThmValue)}`,
+          href: `/datasets?theme=${encodeURIComponent(theme.ThmValue)}`,
         }));
         setQuickLinks(extractedLinks.slice(0, 3)); // Limit to 3 items
       } catch (error) {
@@ -73,19 +96,16 @@ const Home = () => {
 
   return (
     <div className="ds_page__middle">
-<main id="main-content">
-          <div
+      <main id="main-content">
+        <div
           className="ds_cb ds_cb--blue relative"
           style={{
             backgroundImage: 'url(/assets/images/edinburgh_skyline.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            width: '100vw', // Ensure full width
+            width: '100%',
+            boxSizing: 'border-box',
             padding: '2rem 0',
-            left: '50%',
-            right: '50%',
-            marginLeft: '-50vw',
-            marginRight: '-50vw',
           }}
         >
           <div className="absolute inset-0 bg-blue-900/60"></div>
@@ -93,7 +113,7 @@ const Home = () => {
             <div className="ds_cb__inner ds_cb__inner--spacious">
               <div className="ds_layout">
                 <div className="ds_layout__content">
-                  <div style={{ marginTop: '2rem' }}> {/* Add margin above the text */}
+                  <div style={{ marginTop: '2rem' }}>
                     <h1 className="ds_page-header__title" style={{ color: '#FFFFFF', marginBottom: '12.5px' }}>
                       Open access to Scotland's data
                     </h1>
@@ -151,7 +171,10 @@ const Home = () => {
                         </form>
                       </div>
                     </div>
-                    <div className="mt-4 p-4 bg-white/20 backdrop-blur-sm rounded-md" style={{ marginBottom: '2rem' }}> {/* Add margin below the top searches */}
+                    <div
+                      className="mt-4 p-4 bg-white/20 backdrop-blur-sm rounded-md"
+                      style={{ marginBottom: '2rem', width: '70%' }}
+                    >
                       <span className="text-sm font-bold text-gray-200">Top searches:</span>
                       <div className="flex items-center space-x-4">
                         {topSearches.map((item, index) => (
@@ -177,7 +200,7 @@ const Home = () => {
 
         <div className="ds_wrapper" style={{ marginTop: '1.5rem' }}>
           <div className="ds_cb__inner">
-            <h3 className="ds_h3">Browse By</h3>
+            <h3 className="ds_h3">Browse By Theme</h3>
             <nav aria-label="Category navigation">
               <ul className="ds_category-list ds_category-list--grid ds_category-list--narrow" style={{ marginTop: '-0.5rem' }}>
                 {quickLinks.map((link, index) => (
@@ -194,46 +217,6 @@ const Home = () => {
                     </article>
                   </li>
                 ))}
-              </ul>
-            </nav>
-          </div>
-        </div>
-
-        <div className="ds_wrapper" style={{ marginTop: '1.5rem' }}>
-          <div className="ds_cb__inner">
-            <h3 className="ds_h3">More Information</h3>
-            <nav aria-label="Category navigation">
-              <ul className="ds_category-list ds_category-list--grid" style={{ marginTop: '-0.5rem' }}>
-                <li className="ds_category-item">
-                  <h2 className="ds_category-item__title">
-                    <Link to="/about" className="ds_category-item__link">
-                      About Emerald
-                    </Link>
-                  </h2>
-                  <p className="ds_category-item__summary">
-                    Learn more about Scotland’s official open data portal and its mission.
-                  </p>
-                </li>
-                <li className="ds_category-item">
-                  <h2 className="ds_category-item__title">
-                    <Link to="/help" className="ds_category-item__link">
-                      Support
-                    </Link>
-                  </h2>
-                  <p className="ds_category-item__summary">
-                    Find guides, FAQs, and support resources for using the portal.
-                  </p>
-                </li>
-                <li className="ds_category-item">
-                  <h2 className="ds_category-item__title">
-                    <Link to="/contact" className="ds_category-item__link">
-                      Contact Us
-                    </Link>
-                  </h2>
-                  <p className="ds_category-item__summary">
-                    Get in touch with the Scottish Government for assistance or inquiries.
-                  </p>
-                </li>
               </ul>
             </nav>
           </div>

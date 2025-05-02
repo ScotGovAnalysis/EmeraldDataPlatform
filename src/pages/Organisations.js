@@ -130,27 +130,7 @@ const Organisations = () => {
           </div>
 
           <div className="ds_layout__content ds_layout__content--standard-grid">
-            <section className="ds_!-margin-bottom-4">
-              <h2 className="ds_h3">About Organisations</h2>
-              <p className="ds_body-text">
-                Organisations are entities that own and publish datasets on the Emerald Open Data Portal. Each organisation is responsible for:
-              </p>
-              <ul className="ds_list ds_list--bulleted">
-                <li>Maintaining the quality and accuracy of their datasets</li>
-                <li>Providing appropriate metadata and documentation</li>
-                <li>Ensuring datasets are updated according to their stated frequency</li>
-                <li>Responding to queries about their data</li>
-              </ul>
-              <p className="ds_body-text ds_!-margin-top-2">
-                If you have questions about a specific dataset, please contact the organisation that owns it directly.
-              </p>
-            </section>
 
-            <div className="ds_!-margin-bottom-4">
-              <p className="ds_body-text">
-                Browse organisations that contribute data to the Emerald Open Data Portal. Each organisation is responsible for maintaining and providing high-quality datasets.
-              </p>
-            </div>
 
             <div className="ds_site-search ds_!-margin-bottom-4">
               <form role="search" className="ds_site-search__form" onSubmit={(e) => e.preventDefault()}>

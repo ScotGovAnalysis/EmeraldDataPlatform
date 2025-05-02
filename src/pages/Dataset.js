@@ -396,8 +396,8 @@ const handleConfigureChart = (config) => {
                       <FileText size={20} className="text-purple-600 mr-3" />
                     )}
                     <div className="text-left">
-                      <h4 className="font-medium text-gray-900">
-                        {item.type === 'text/csv'
+                    <h4 className="font-medium text-gray-900" style={{ marginBottom: '0px' }}>
+                    {item.type === 'text/csv'
                           ? 'CSV Data'
                           : item.type === 'application/json'
                           ? 'JSON File'
@@ -405,10 +405,6 @@ const handleConfigureChart = (config) => {
                           ? 'Excel Spreadsheet'
                           : 'PxStat File'}
                       </h4>
-                      <p className="text-sm text-gray-500">
-                        {item.type.split('/')[1].toUpperCase()} •{' '}
-                        {item.href.split('/').pop().split('.').pop().toUpperCase()}
-                      </p>
                     </div>
                   </div>
                   <Download size={18} className="text-gray-400" />

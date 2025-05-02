@@ -14,6 +14,7 @@ const Datasets = () => {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const searchQuery = queryParams.get('q');
+  const themeQuery = queryParams.get('theme');
   const orgCode = queryParams.get('org');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,10 +36,12 @@ const Datasets = () => {
       fetchDatasetsByOrganisation(orgCode);
     } else if (searchQuery) {
       fetchSearchResults(searchQuery);
+    } else if (themeQuery) {
+      fetchDatasetsByTheme(themeQuery);
     } else {
       fetchDefaultDatasets();
     }
-  }, [searchQuery, orgCode]);
+  }, [searchQuery, orgCode, themeQuery]);
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -158,6 +161,43 @@ const Datasets = () => {
     }
   };
 
+  const fetchDatasetsByTheme = async (theme) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'PxStat.System.Navigation.Navigation_API.Search',
+          params: { Search: theme, LngIsoCode: 'en' },
+          id: Math.floor(Math.random() * 1000000000),
+        }),
+      });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      const datasets = Array.isArray(data.result)
+        ? data.result.map((item) => ({
+            MtrCode: item.MtrCode || 'unknown',
+            MtrTitle: item.MtrTitle || 'Untitled Dataset',
+            RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
+            CprValue: item.CprValue || 'Unknown',
+            CprCode: item.CprCode || 'UNKNOWN',
+            description: item.description || 'No description available',
+          }))
+        : [];
+      setResults(datasets);
+      setOrganizationOptions([...new Set(datasets
+        .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
+        .map((item) => item.CprValue)
+        .filter(Boolean))]);
+      setLoading(false);
+    } catch (error) {
+      setError(error);
+      setLoading(false);
+    }
+  };
+
   const handleSortChange = (e) => {
     const selectedSort = e.target.value;
     setSortBy(selectedSort);
@@ -196,7 +236,7 @@ const Datasets = () => {
   const getOrganizationCounts = () => {
     return organizationOptions.map((org) => ({
       name: org,
-      count: results.filter((result) => result.CprValue === org && 
+      count: results.filter((result) => result.CprValue === org &&
         (!config.pxFilter || result.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))).length,
     }));
   };
@@ -256,7 +296,7 @@ const Datasets = () => {
           <div className="ds_layout__header">
             <header className="ds_page-header">
               <h1 className="ds_page-header__title">
-                {searchQuery ? `Search results for "${searchQuery}"` : orgCode ? `Datasets for ${orgCode}` : 'Datasets'}
+                {searchQuery ? `Search results for "${searchQuery}"` : themeQuery ? `Datasets for ${themeQuery}` : orgCode ? `Datasets for ${orgCode}` : 'Datasets'}
               </h1>
             </header>
           </div>
@@ -477,7 +517,7 @@ const Datasets = () => {
                       type="submit"
                       className="ds_button ds_button--primary ds_button--small ds_button--max ds_no-margin"
                     >
-                      Apply filter
+                      Clear filters
                     </button>
                   </form>
                 </div>
@@ -489,9 +529,11 @@ const Datasets = () => {
               <h2 aria-live="polite" className="ds_search-results__title">
                 {searchQuery
                   ? `${filteredResults.length} result${filteredResults.length !== 1 ? 's' : ''} for "${searchQuery}"`
-                  : orgCode 
-                    ? `${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''} for ${orgCode}`
-                    : `Showing latest ${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''}`}
+                  : themeQuery
+                    ? `${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''} for ${themeQuery}`
+                    : orgCode
+                      ? `${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''} for ${orgCode}`
+                      : `Showing latest ${filteredResults.length} dataset${filteredResults.length !== 1 ? 's' : ''}`}
               </h2>
               <hr className="ds_search-results__divider" />
               <div className="ds_search-controls">
