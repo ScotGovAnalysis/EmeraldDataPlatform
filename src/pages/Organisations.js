@@ -174,9 +174,9 @@ const Organisations = () => {
                 <form onSubmit={(e) => e.preventDefault()}>
                   <div className="ds_sort-options">
                     <label className="ds_label" htmlFor="sort-by">Sort by</label>
-                    <span className="ds_select-wrapper">
+                  <span className={`ds_select-wrapper ${styles.selectWrapper}`}>
                       <select
-                        className="ds_select"
+                      className={`ds_select ${styles.select}`}
                         id="sort-by"
                         onChange={(e) => handleSort(e.target.value)}
                         value={sortConfig.key}
@@ -186,7 +186,7 @@ const Organisations = () => {
                         <option value="MtrCount">Datasets (High to Low)</option>
                         <option value="MtrCount_desc">Datasets (Low to High)</option>
                       </select>
-                      <span className="ds_select-arrow" aria-hidden="true"></span>
+                    <span className={`ds_select-arrow ${styles.selectArrow}`} aria-hidden="true"></span>
                     </span>
                     <button type="submit" className="ds_button ds_button--secondary ds_button--small">
                       Apply sort
