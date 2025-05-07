@@ -189,36 +189,17 @@ const Organisations = () => {
                   <div className="ds_sort-options">
                     <label className="ds_label" htmlFor="sort-by">Sort by</label>
                     <span className="ds_select-wrapper">
-                    <select
-  className="ds_select"
-  id="sort-by"
-  onChange={(e) => {
-    const value = e.target.value;
-    if (value === 'CprValue') {
-      setSortConfig({ key: 'CprValue', direction: 'ascending' });
-    } else if (value === 'CprValue_desc') {
-      setSortConfig({ key: 'CprValue', direction: 'descending' });
-    } else if (value === 'MtrCount') {
-      setSortConfig({ key: 'MtrCount', direction: 'descending' }); // High to Low
-    } else if (value === 'MtrCount_desc') {
-      setSortConfig({ key: 'MtrCount', direction: 'ascending' }); // Low to High
-    }
-  }}
-  value={
-    sortConfig.key === 'CprValue' 
-      ? sortConfig.direction === 'ascending' 
-        ? 'CprValue' 
-        : 'CprValue_desc'
-      : sortConfig.direction === 'descending' 
-        ? 'MtrCount' 
-        : 'MtrCount_desc'
-  }
->
-  <option value="CprValue">Name (A-Z)</option>
-  <option value="CprValue_desc">Name (Z-A)</option>
-  <option value="MtrCount">Datasets (High to Low)</option>
-  <option value="MtrCount_desc">Datasets (Low to High)</option>
-</select>
+                      <select
+                        className="ds_select"
+                        id="sort-by"
+                        onChange={(e) => handleSort(e.target.value)}
+                        value={sortConfig.key}
+                      >
+                        <option value="CprValue">Name (A-Z)</option>
+                        <option value="CprValue_desc">Name (Z-A)</option>
+                        <option value="MtrCount">Datasets (High to Low)</option>
+                        <option value="MtrCount_desc">Datasets (Low to High)</option>
+                      </select>
                       <span className="ds_select-arrow" aria-hidden="true"></span>
                     </span>
                   </div>
