@@ -68,14 +68,30 @@ const Organisations = () => {
     }
     setSortConfig({ key, direction });
   };
-
+  
   const sortedOrganisations = [...organisations].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === 'ascending' ? -1 : 1;
+    // Handle CprValue sorting (alphabetical)
+    if (sortConfig.key === 'CprValue') {
+      const valueA = a.CprValue.toLowerCase();
+      const valueB = b.CprValue.toLowerCase();
+      if (valueA < valueB) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
     }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === 'ascending' ? 1 : -1;
+    
+    // Handle MtrCount sorting (numeric)
+    if (sortConfig.key === 'MtrCount') {
+      if (sortConfig.direction === 'ascending') {
+        return a.MtrCount - b.MtrCount; // Low to High
+      } else {
+        return b.MtrCount - a.MtrCount; // High to Low
+      }
     }
+    
     return 0;
   });
 
@@ -130,8 +146,6 @@ const Organisations = () => {
           </div>
 
           <div className="ds_layout__content ds_layout__content--standard-grid">
-
-
             <div className="ds_site-search ds_!-margin-bottom-4">
               <form role="search" className="ds_site-search__form" onSubmit={(e) => e.preventDefault()}>
                 <label className="ds_label" htmlFor="org-search">Search organisations</label>
@@ -175,31 +189,47 @@ const Organisations = () => {
                   <div className="ds_sort-options">
                     <label className="ds_label" htmlFor="sort-by">Sort by</label>
                     <span className="ds_select-wrapper">
-                      <select
-                        className="ds_select"
-                        id="sort-by"
-                        onChange={(e) => handleSort(e.target.value)}
-                        value={sortConfig.key}
-                      >
-                        <option value="CprValue">Name (A-Z)</option>
-                        <option value="CprValue_desc">Name (Z-A)</option>
-                        <option value="MtrCount">Datasets (High to Low)</option>
-                        <option value="MtrCount_desc">Datasets (Low to High)</option>
-                      </select>
+                    <select
+  className="ds_select"
+  id="sort-by"
+  onChange={(e) => {
+    const value = e.target.value;
+    if (value === 'CprValue') {
+      setSortConfig({ key: 'CprValue', direction: 'ascending' });
+    } else if (value === 'CprValue_desc') {
+      setSortConfig({ key: 'CprValue', direction: 'descending' });
+    } else if (value === 'MtrCount') {
+      setSortConfig({ key: 'MtrCount', direction: 'descending' }); // High to Low
+    } else if (value === 'MtrCount_desc') {
+      setSortConfig({ key: 'MtrCount', direction: 'ascending' }); // Low to High
+    }
+  }}
+  value={
+    sortConfig.key === 'CprValue' 
+      ? sortConfig.direction === 'ascending' 
+        ? 'CprValue' 
+        : 'CprValue_desc'
+      : sortConfig.direction === 'descending' 
+        ? 'MtrCount' 
+        : 'MtrCount_desc'
+  }
+>
+  <option value="CprValue">Name (A-Z)</option>
+  <option value="CprValue_desc">Name (Z-A)</option>
+  <option value="MtrCount">Datasets (High to Low)</option>
+  <option value="MtrCount_desc">Datasets (Low to High)</option>
+</select>
                       <span className="ds_select-arrow" aria-hidden="true"></span>
                     </span>
-                    <button type="submit" className="ds_button ds_button--secondary ds_button--small">
-                      Apply sort
-                    </button>
                   </div>
                 </form>
               </div>
-              
+
               <ol className="ds_search-results__list" data-total={filteredOrganisations.length} start="1" id="search-results">
                 {filteredOrganisations.map((org) => (
                   <li key={org.CprCode} className="ds_search-result">
                     <h3 className="ds_search-result__title">
-                      <Link to={`/datasets?org=${org.CprCode}`} className="ds_search-result__link">
+                      <Link to={`/datasets?q=${encodeURIComponent(org.CprValue)}`} className="ds_search-result__link">
                         {org.CprValue}
                       </Link>
                     </h3>
@@ -216,18 +246,15 @@ const Organisations = () => {
                       <dd className="ds_search-result__context-value">
                         {org.CprUrl && (
                           <div className="ds_button-group" style={{ marginTop: '-3px' }}>
-                            <a 
-                              href={org.CprUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
+                            <a
+                              href={org.CprUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="ds_button ds_button--secondary ds_button--small"
                             >
                               Visit Website
                             </a>
-                            <Link 
-                              to={`/datasets?org=${org.CprCode}`} 
-                              className="ds_button ds_button--primary ds_button--small"
-                            >
+                            <Link to={`/datasets?q=${encodeURIComponent(org.CprValue)}`} className="ds_button ds_button--primary ds_button--small">
                               View Datasets
                             </Link>
                           </div>
@@ -237,7 +264,7 @@ const Organisations = () => {
                   </li>
                 ))}
               </ol>
-              
+
               <nav className="ds_pagination" aria-label="Search result pages">
                 <ul className="ds_pagination__list">
                   <li className="ds_pagination__item">

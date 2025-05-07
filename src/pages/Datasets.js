@@ -19,7 +19,7 @@ const Datasets = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('relevance');
+  const [sortBy, setSortBy] = useState('date');
   const [selectedOrganizations, setSelectedOrganizations] = useState([]);
   const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
   const [organizationOptions, setOrganizationOptions] = useState([]);
@@ -109,6 +109,9 @@ const Datasets = () => {
             CprValue: item.CprValue || 'Unknown',
             CprCode: item.CprCode || 'UNKNOWN',
             description: item.description || 'No description available',
+            FrqValue: item.FrqValue,
+            period: item.period,
+            classification: item.classification,
           }))
         : [];
       setResults(searchResults);
@@ -557,7 +560,6 @@ const Datasets = () => {
                       value={sortBy}
                       onChange={handleSortChange}
                     >
-                      <option value="relevance">Most relevant</option>
                       <option value="date">Updated (newest)</option>
                       <option value="adate">Updated (oldest)</option>
                     </select>
@@ -595,6 +597,64 @@ const Datasets = () => {
                         </dd>
                       </div>
                     </dl>
+                    {(result.FrqValue || result.period || result.classification) && (
+                      <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {result.FrqValue && (
+                          <span
+                          style={{
+                            backgroundColor: '#0475b1',           // Rich, dark blue-black
+                            color: '#ffffff',
+                            padding: '0.3rem 0.8rem',
+                            borderRadius: '0.5rem',              // More squared than before
+                            fontSize: '0.55rem',
+                            fontWeight: 500,
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            transition: 'all 0.2s ease-in-out',
+                            whiteSpace: 'nowrap'
+                          }}
+                          >
+                            {result.FrqValue}
+                          </span>
+                        )}
+                        {result.period && (
+                          <span
+                          style={{
+                            backgroundColor: '#28a197',           // Rich, dark blue-black
+                            color: '#ffffff',
+                            padding: '0.3rem 0.8rem',
+                            borderRadius: '0.5rem',              // More squared than before
+                            fontSize: '0.55rem',
+                            fontWeight: 500,
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            transition: 'all 0.2s ease-in-out',
+                            whiteSpace: 'nowrap'
+                          }}
+                          >
+                            {result.period[0]} - {result.period[result.period.length - 1]}
+                          </span>
+                        )}
+                        {result.classification &&
+                          result.classification.map((dim, index) => (
+                            <span
+                              key={index}
+                              style={{
+                                backgroundColor: '#38486d',           // Rich, dark blue-black
+                                color: '#ffffff',
+                                padding: '0.3rem 0.8rem',
+                                borderRadius: '0.5rem',              // More squared than before
+                                fontSize: '0.55rem',
+                                fontWeight: 500,
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                transition: 'all 0.2s ease-in-out',
+                                whiteSpace: 'nowrap'
+                              }}
+                              
+                            >
+                              {dim.ClsValue}
+                            </span>
+                          ))}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ol>
