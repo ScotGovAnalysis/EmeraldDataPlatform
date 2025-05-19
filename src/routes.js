@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Organisations from './pages/Organisations';
 import Privacy from './pages/Privacy';
 import Accessibility from './pages/Accessibility';
+import Themes from './pages/Themes';
 
 const routes = [
   { path: '/accessibility', element: <Accessibility /> },
@@ -19,6 +20,8 @@ const routes = [
   { path: '/organisations', element: <Organisations /> },
   { path: '/', element: <Home /> },
   { path: '/privacy', element: <Privacy /> },
+  { path: '/themes', element: <Themes /> },
+
 ];
 
 export default routes;

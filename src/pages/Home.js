@@ -62,7 +62,7 @@ const Home = () => {
           label: theme.ThmValue,
           href: `/datasets?theme=${encodeURIComponent(theme.ThmValue)}`,
         }));
-        setQuickLinks(extractedLinks.slice(0, 3)); // Limit to 3 items
+        setQuickLinks(extractedLinks.slice(0, 3));
       } catch (error) {
         setError(error.message);
       } finally {
@@ -94,6 +94,28 @@ const Home = () => {
     }
   }, []);
 
+  // Format the paragraph text, mimicking Cobalt | Home
+  const formattedText = `
+    <style>
+      .intro-link:hover, .intro-link:focus {
+        color: #002147 !important; /* Navy blue color */
+        background: #fdd522 !important; /* Yellow background */
+        
+      }
+      .intro-text::selection {
+        color: #002147 !important; /* Navy blue color */
+        background: #fdd522 !important; /* Yellow background */
+      }
+      .intro-link:focus {
+        color: #002147 !important; /* Navy blue color */
+        outline: 3px solid #fdd522 !important;
+      }
+    </style>
+    <div class="intro-text">
+      Find and access <strong><u><a href="/datasets" class="intro-link" style="color: #FFFFFF;">datasets</a></u></strong> from the Scottish Government and its agencies. Explore data by <strong><u><a href="/themes" class="intro-link" style="color: #FFFFFF;">theme</a></u></strong> or <strong><u><a href="/organisations" class="intro-link" style="color: #FFFFFF;">organisations</a></u></strong>. For assistance, <strong><u><a href="/help" class="intro-link" style="color: #FFFFFF;">help</a></u></strong> is available or <strong><u><a href="/contact" class="intro-link" style="color: #FFFFFF;">contact us</a></u></strong>.
+    </div>
+  `;
+
   return (
     <div className="ds_page__middle">
       <main id="main-content">
@@ -118,9 +140,7 @@ const Home = () => {
                       Open access to Scotland's data
                     </h1>
                   </div>
-                  <p className="ds_lead" style={{ color: '#FFFFFF' }}>
-                    Find and access <strong><u><Link to="/datasets" style={{ color: '#FFFFFF' }}>datasets</Link></u></strong> from the Scottish Government and its agencies. Explore data by <strong><u><Link to="/themes" style={{ color: '#FFFFFF' }}>theme</Link></u></strong> or <strong><u><Link to="/organisations" style={{ color: '#FFFFFF' }}>organisations</Link></u></strong>. For assistance, <strong><u><Link to="/help" style={{ color: '#FFFFFF' }}>help</Link></u></strong> is available or <strong><u><Link to="/contact" style={{ color: '#FFFFFF' }}>contact us</Link></u></strong>.
-                  </p>
+                  <p className="ds_lead intro-text" style={{ color: '#FFFFFF' }} dangerouslySetInnerHTML={{ __html: formattedText }} />
                   <div className="ds_cb__inner">
                     <div
                       className="search-container"
