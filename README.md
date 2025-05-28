@@ -2,6 +2,7 @@
 
 A React-based frontend for PxStat, designed to provide a user-friendly interface for exploring and managing open data and statistics. This project is part of an alpha testing phase to evaluate its effectiveness among a range of open data portal tools.
 
+Note: This project was originally forked from the PxStat Statistics Portal, but has since been substantially rewritten as a custom frontend. It now uses only the PxStat APIs and backend as a data source, and is no longer affiliated with or representative of the original PxStat frontend codebase.
 
 
 ---

@@ -46,7 +46,7 @@ const Footer = () => {
               <strong>
                 Powered by{' '}
                 <a
-                  href="https://github.com/ckan/ckan"
+                  href="https://github.com/CSOIreland/PxStat"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
