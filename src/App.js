@@ -37,11 +37,7 @@ const App = () => {
         <ScrollToTop />
         <div className="ds_page">
           <Header />
-          <main
-            id="main-content"
-            className="flex-1"
-            style={{ padding: 0, overflowX: 'hidden' }}
-          >
+          <main id="main-content" className="flex-1" style={{ padding: 0, overflowX: 'hidden' }}>
             <Routes>
               {routes.map(({ path, element }, index) => (
                 <Route key={index} path={path} element={element} />
