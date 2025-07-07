@@ -13,6 +13,84 @@ import DataViewerModal from '../modals/DataViewerModal';
 import ChartConfigurationModal from '../modals/ChartConfigurationModal';
 import ChartRenderingModal from '../modals/ChartRenderingModal';
 
+// Function to parse pseudo-JSON note
+const parsePseudoJsonNote = (note) => {
+  if (!note || !note[0]) return { isPseudoJson: false, content: note?.[0] || 'No description available' };
+
+  const noteText = note[0];
+
+  // Function to parse Markdown links [text](url)
+  const parseMarkdownLinks = (text) => {
+    const linkRegex = /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+      }
+      // Add the link
+      parts.push({ type: 'link', text: match[1], url: match[2] });
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text after the last link
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', value: text.slice(lastIndex) });
+    }
+
+    return parts.length > 0 ? parts : [{ type: 'text', value: text }];
+  };
+
+  // Check if the note follows the pseudo-JSON pattern
+  if (noteText.startsWith('[{') && noteText.endsWith('}]')) {
+    try {
+      const parsed = {};
+
+      // Split into individual key-value pairs
+      const pairs = noteText
+        .slice(2, -2)
+        .split('],')
+        .map(pair => pair.trim())
+        .filter(pair => pair);
+
+      pairs.forEach(pair => {
+        const keyValue = pair.split(':[{');
+        if (keyValue.length < 2) return;
+
+        const key = keyValue[0].trim();
+        let value = keyValue[1].replace('}]', '').trim();
+
+        // Skip Markdown parsing for specific fields like contactEmail
+        const skipMarkdownFields = ['http://publishmydata.com/def/dataset#contactEmail'];
+        const shouldParseMarkdown = !skipMarkdownFields.includes(key);
+
+        if (value.includes('},{')) {
+          parsed[key] = value.split('},{').map(v => {
+            const match = v.match(/@value:([^}]*)/) || v.match(/@id:([^}]*)/);
+            const rawValue = match ? match[1].trim() : v.trim();
+            return shouldParseMarkdown ? parseMarkdownLinks(rawValue) : rawValue;
+          });
+        } else {
+          const valueMatch = value.match(/@value:([^}]*)/) || value.match(/@id:([^}]*)/);
+          const rawValue = valueMatch ? valueMatch[1].trim() : value.trim();
+          parsed[key] = shouldParseMarkdown ? parseMarkdownLinks(rawValue) : rawValue;
+        }
+      });
+
+      return { isPseudoJson: true, content: parsed };
+    } catch (err) {
+      console.error('Error parsing pseudo-JSON:', err, 'Note:', noteText);
+      return { isPseudoJson: false, content: parseMarkdownLinks(noteText) };
+    }
+  }
+
+  // Handle non-pseudo-JSON notes with Markdown links
+  return { isPseudoJson: false, content: parseMarkdownLinks(noteText) };
+};
+
 const Dataset = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -86,12 +164,11 @@ const Dataset = () => {
 
   const handleViewClick = async () => {
     try {
-      // Check if no dimensions are selected
       if (Object.keys(selectedDimensions).length === 0) {
         alert('Please select at least one dimension');
         return;
       }
-  
+
       const dimensions = {};
       let hasSelectedValues = false;
       Object.keys(selectedDimensions).forEach((key) => {
@@ -100,13 +177,12 @@ const Dataset = () => {
           hasSelectedValues = true;
         }
       });
-  
-      // Check if no dimension values are selected
+
       if (!hasSelectedValues) {
         alert('Please select at least one option from a dimension');
         return;
       }
-  
+
       const response = await fetch(`${config.apiBaseUrl}/api.jsonrpc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,10 +206,10 @@ const Dataset = () => {
           id: 677981009,
         }),
       });
-  
+
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
-  
+
       const parsedData = parseJsonStat(data.result);
       setTableData(parsedData);
       setError(null);
@@ -142,73 +218,68 @@ const Dataset = () => {
       setError('An error occurred while fetching the dataset: ' + (err.message || 'Please try again.'));
     }
   };
-  
 
-// Parse JSON-stat data into a table format for DataViewerModal
-const parseJsonStat = (jsonStat) => {
-  if (!jsonStat || !jsonStat.dimension || !jsonStat.value) {
-    console.error('Invalid JSON-stat data:', jsonStat);
-    return [];
-  }
-
-  const { dimension, value, id, size } = jsonStat;
-  const dimIds = id || [];
-  const dimSizes = size || [];
-  const dimCategories = {};
-
-  // Map dimension IDs to their category labels
-  dimIds.forEach((dimId) => {
-    dimCategories[dimId] = dimension[dimId]?.category?.label || {};
-  });
-
-  // Generate all possible combinations of dimension indices
-  const tableData = [];
-  const indices = new Array(dimIds.length).fill(0);
-
-  const generateRows = (dimIndex, currentRow) => {
-    if (dimIndex >= dimIds.length) {
-      // Calculate flat index for value
-      let flatIndex = 0;
-      let multiplier = 1;
-      for (let i = dimIds.length - 1; i >= 0; i--) {
-        flatIndex += indices[i] * multiplier;
-        multiplier *= dimSizes[i];
-      }
-
-      // Create row with dimension codes and value
-      const row = { ...currentRow, Value: value[flatIndex] || null };
-      tableData.push(row);
-      return;
+  const parseJsonStat = (jsonStat) => {
+    if (!jsonStat || !jsonStat.dimension || !jsonStat.value) {
+      console.error('Invalid JSON-stat data:', jsonStat);
+      return [];
     }
 
-    const dimId = dimIds[dimIndex];
-    const categories = Object.keys(dimCategories[dimId]);
-    categories.forEach((code, index) => {
-      indices[dimIndex] = index;
-      generateRows(dimIndex + 1, { ...currentRow, [dimId]: code });
+    const { dimension, value, id, size } = jsonStat;
+    const dimIds = id || [];
+    const dimSizes = size || [];
+    const dimCategories = {};
+
+    dimIds.forEach((dimId) => {
+      dimCategories[dimId] = dimension[dimId]?.category?.label || {};
     });
+
+    const tableData = [];
+    const indices = new Array(dimIds.length).fill(0);
+
+    const generateRows = (dimIndex, currentRow) => {
+      if (dimIndex >= dimIds.length) {
+        let flatIndex = 0;
+        let multiplier = 1;
+        for (let i = dimIds.length - 1; i >= 0; i--) {
+          flatIndex += indices[i] * multiplier;
+          multiplier *= dimSizes[i];
+        }
+
+        const row = { ...currentRow, Value: value[flatIndex] || null };
+        tableData.push(row);
+        return;
+      }
+
+      const dimId = dimIds[dimIndex];
+      const categories = Object.keys(dimCategories[dimId]);
+      categories.forEach((code, index) => {
+        indices[dimIndex] = index;
+        generateRows(dimIndex + 1, { ...currentRow, [dimId]: code });
+      });
+    };
+
+    generateRows(0, {});
+    return tableData;
   };
 
-  generateRows(0, {});
-  return tableData;
-};
-const handleApiClick = async () => {
-  try {
-    const response = await fetch(dataset.href);
-    const data = await response.json();
-    setApiData(data);
-    setIsApiModalOpen(true);
-  } catch (err) {
-    setError('An error occurred while fetching the API data: ' + (err.message || 'Please try again.'));
-  }
-};
+  const handleApiClick = async () => {
+    try {
+      const response = await fetch(dataset.href);
+      const data = await response.json();
+      setApiData(data);
+      setIsApiModalOpen(true);
+    } catch (err) {
+      setError('An error occurred while fetching the API data: ' + (err.message || 'Please try again.'));
+    }
+  };
 
-// Handle chart configuration submission from ChartConfigurationModal
-const handleConfigureChart = (config) => {
-  setChartConfig(config);
-  setIsChartConfigOpen(false);
-  setIsChartRenderOpen(true);
-};
+  const handleConfigureChart = (config) => {
+    setChartConfig(config);
+    setIsChartConfigOpen(false);
+    setIsChartRenderOpen(true);
+  };
+
   const handleDimensionToggle = (dimensionKey) => {
     setOpenDimension(openDimension === dimensionKey ? null : dimensionKey);
     setSearchQuery('');
@@ -226,14 +297,14 @@ const handleConfigureChart = (config) => {
     });
   };
 
-  const handleSelectAll = (dimensionKey, categories) => {
+  const handleSelectDimensions = (dimensionKey, categories) => {
     setSelectedDimensions((prev) => ({
       ...prev,
       [dimensionKey]: Object.keys(categories),
     }));
   };
 
-  const handleClearAll = (dimensionKey) => {
+  const handleClearDimensions = (dimensionKey) => {
     setSelectedDimensions((prev) => ({ ...prev, [dimensionKey]: [] }));
   };
 
@@ -298,6 +369,7 @@ const handleConfigureChart = (config) => {
   }
 
   const { label, dimension, extension, updated, note, link } = dataset;
+  const parsedNote = parsePseudoJsonNote(note);
 
   return (
     <div className="ds_page__middle">
@@ -346,36 +418,81 @@ const handleConfigureChart = (config) => {
               <dl className="ds_metadata">
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Organisation</dt>
-                  <dd className="ds_metadata__value">{' '}{extension.copyright?.name || 'Not specified'}</dd>
+                  <dd className="ds_metadata__value">{extension.copyright?.name || 'Not specified'}</dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Published</dt>
-                  <dd className="ds_metadata__value">{' '}{formatDate(updated)}</dd>
+                  <dd className="ds_metadata__value">
+                    {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/issued']
+                      ? (Array.isArray(parsedNote.content['http://purl.org/dc/terms/issued'])
+                          ? formatDate(parsedNote.content['http://purl.org/dc/terms/issued'][0])
+                          : formatDate(parsedNote.content['http://purl.org/dc/terms/issued']))
+                      : formatDate(updated)}
+                  </dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Last Updated</dt>
-                  <dd className="ds_metadata__value">{' '}{formatDate(updated)}</dd>
+                  <dd className="ds_metadata__value">
+                    {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/modified']
+                      ? (Array.isArray(parsedNote.content['http://purl.org/dc/terms/modified'])
+                          ? formatDate(parsedNote.content['http://purl.org/dc/terms/modified'][0])
+                          : formatDate(parsedNote.content['http://purl.org/dc/terms/modified']))
+                      : formatDate(updated)}
+                  </dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Contact</dt>
-                  <dd className="ds_metadata__value">{' '}
-                    {extension.contact?.email ? (
-                      <a href={`mailto:${extension.contact.email}`} className="ds_link">
-                        {extension.contact.email}
-                      </a>
-                    ) : (
-                      'Not specified'
-                    )}
+                  <dd className="ds_metadata__value">
+                    {parsedNote.isPseudoJson && parsedNote.content['http://publishmydata.com/def/dataset#contactEmail']
+                      ? (
+                          <a
+                            href={typeof parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'] === 'string'
+                              ? parsedNote.content['http://publishmydata.com/def/dataset#contactEmail']
+                              : parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'][0]?.value}
+                            className="ds_link"
+                          >
+                            {typeof parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'] === 'string'
+                              ? parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'].replace('mailto:', '')
+                              : parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'][0]?.value?.replace('mailto:', '') || 'Not specified'}
+                          </a>
+                        )
+                      : extension.contact?.email
+                        ? (
+                            <a href={`mailto:${extension.contact.email}`} className="ds_link">
+                              {extension.contact.email}
+                            </a>
+                          )
+                        : 'Not specified'}
                   </dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Subject</dt>
-                  <dd className="ds_metadata__value">{' '}{extension.subject?.value || 'Not specified'}</dd>
+                  <dd className="ds_metadata__value">{extension.subject?.value || 'Not specified'}</dd>
                 </div>
                 <div className="ds_metadata__item">
                   <dt className="ds_metadata__key">Product</dt>
-                  <dd className="ds_metadata__value">{' '}{extension.product?.value || 'Not specified'}</dd>
+                  <dd className="ds_metadata__value">{extension.product?.value || 'Not specified'}</dd>
                 </div>
+                {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/license'] && (
+                  <div className="ds_metadata__item">
+                    <dt className="ds_metadata__key">License</dt>
+                    <dd className="ds_metadata__value">
+                      <a
+                        href={typeof parsedNote.content['http://purl.org/dc/terms/license'] === 'string'
+                          ? parsedNote.content['http://purl.org/dc/terms/license']
+                          : parsedNote.content['http://purl.org/dc/terms/license'][0]?.value}
+                        className="ds_link"
+                      >
+                        {(typeof parsedNote.content['http://purl.org/dc/terms/license'] === 'string'
+                          ? parsedNote.content['http://purl.org/dc/terms/license']
+                          : parsedNote.content['http://purl.org/dc/terms/license'][0]?.value || '')
+                          .split('/')
+                          .pop()
+                          .replace('version-', 'Version ')}
+                      </a>
+                    </dd>
+                  </div>
+                )}
               </dl>
               <hr />
               <h3 className="ds_metadata__panel-title">Downloads</h3>
@@ -396,8 +513,8 @@ const handleConfigureChart = (config) => {
                       <FileText size={20} className="text-purple-600 mr-3" />
                     )}
                     <div className="text-left">
-                    <h4 className="font-medium text-gray-900" style={{ marginBottom: '0px' }}>
-                    {item.type === 'text/csv'
+                      <h4 className="font-medium text-gray-900" style={{ marginBottom: '0px' }}>
+                        {item.type === 'text/csv'
                           ? 'CSV Data'
                           : item.type === 'application/json'
                           ? 'JSON File'
@@ -418,18 +535,71 @@ const handleConfigureChart = (config) => {
               <hr />
               <section className={styles.section}>
                 <h2 className="ds_h3">Summary</h2>
-                <p>{extension.product?.value || label}</p>
+                <p>
+                  {parsedNote.isPseudoJson
+                    ? (Array.isArray(parsedNote.content['http://www.w3.org/2000/01/rdf-schema#comment'])
+                        ? parsedNote.content['http://www.w3.org/2000/01/rdf-schema#comment'].map((part, index) =>
+                            part.type === 'link' ? (
+                              <a key={index} href={part.url} className="ds_link" target="_blank" rel="noopener noreferrer">
+                                {part.text}
+                              </a>
+                            ) : (
+                              <span key={index}>{part.value}</span>
+                            )
+                          )
+                        : parsedNote.content['http://www.w3.org/2000/01/rdf-schema#comment'] || extension.product?.value || label)
+                    : extension.product?.value || label}
+                </p>
               </section>
               <hr />
               <section className={styles.section}>
                 <h2 className="ds_h3">Description</h2>
-                {note?.[0] ? (
-                  note[0]
-                    .replace(/\[url=(.*?)\](.*?)\[\/url\]/g, '[$2]($1)')
-                    .split('\n')
-                    .map((paragraph, index) => <p key={index}>{paragraph}</p>)
+                {parsedNote.isPseudoJson ? (
+                  <>
+                    <p>
+                      {Array.isArray(parsedNote.content['http://purl.org/dc/terms/description'])
+                        ? parsedNote.content['http://purl.org/dc/terms/description'].map((part, index) =>
+                            part.type === 'link' ? (
+                              <a key={index} href={part.url} className="ds_link" target="_blank" rel="noopener noreferrer">
+                                {part.text}
+                              </a>
+                            ) : (
+                              <span key={index}>{part.value}</span>
+                            )
+                          )
+                        : parsedNote.content['http://purl.org/dc/terms/description'] || 'No description available'}
+                    </p>
+                    {parsedNote.content['http://publishmydata.com/def/dataset#nextUpdateDue'] && (
+                      <p>
+                        <strong>Next Update Due:</strong>{' '}
+                        {Array.isArray(parsedNote.content['http://publishmydata.com/def/dataset#nextUpdateDue'])
+                          ? parsedNote.content['http://publishmydata.com/def/dataset#nextUpdateDue'].map((part, index) =>
+                              part.type === 'link' ? (
+                                <a key={index} href={part.url} className="ds_link" target="_blank" rel="noopener noreferrer">
+                                  {part.text}
+                                </a>
+                              ) : (
+                                <span key={index}>{part.value}</span>
+                              )
+                            )
+                          : parsedNote.content['http://publishmydata.com/def/dataset#nextUpdateDue']}
+                      </p>
+                    )}
+                  </>
                 ) : (
-                  <p>No description available</p>
+                  <p>
+                    {Array.isArray(parsedNote.content)
+                      ? parsedNote.content.map((part, index) =>
+                          part.type === 'link' ? (
+                            <a key={index} href={part.url} className="ds_link" target="_blank" rel="noopener noreferrer">
+                              {part.text}
+                            </a>
+                          ) : (
+                            <span key={index}>{part.value}</span>
+                          )
+                        )
+                      : parsedNote.content}
+                  </p>
                 )}
               </section>
               <hr />
@@ -470,13 +640,13 @@ const handleConfigureChart = (config) => {
                               </div>
                               <div className="flex items-center space-x-4">
                                 <button
-                                  onClick={() => handleSelectAll(key, value.category?.label)}
+                                  onClick={() => handleSelectDimensions(key, value.category?.label)}
                                   className="text-sm text-blue-700 hover:text-blue-900 font-semibold"
                                 >
                                   Select all
                                 </button>
                                 <button
-                                  onClick={() => handleClearAll(key)}
+                                  onClick={() => handleClearDimensions(key)}
                                   className="text-sm text-gray-700 hover:text-gray-900 font-semibold"
                                 >
                                   Clear all
@@ -567,39 +737,89 @@ const handleConfigureChart = (config) => {
               <hr />
               <section className={styles.section}>
                 <h2 className="ds_h3">Data Quality</h2>
-                <div className="ds_accordion">
-                  {[
-                    {
-                      key: 'Accuracy and Reliability',
-                      value: 'Data is sourced from official records with rigorous validation processes.',
-                    },
-                    {
-                      key: 'Timeliness and Punctuality',
-                      value: 'Data is updated quarterly, ensuring timely availability.',
-                    },
-                  ].map((item, index) => (
-                    <div key={index} className="ds_accordion-item">
-                      <input
-                        type="checkbox"
-                        className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
-                        id={`quality-detail-${index}`}
-                      />
-                      <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
-                        <h3 className="ds_accordion-item__title">{item.key}</h3>
-                        <span className={styles.accordionIndicator}></span>
-                        <label
-                          className="ds_accordion-item__label"
-                          htmlFor={`quality-detail-${index}`}
-                        >
-                          <span className="visually-hidden">Show this section</span>
-                        </label>
-                      </div>
-                      <div className="ds_accordion-item__body">
-                        <p>{item.value}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+               <div className="ds_accordion">
+  {[{
+    key: 'Accuracy and Reliability',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/accuracy-and-reliability']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/accuracy-and-reliability']
+      : [{ type: 'text', value: 'Data is sourced from official records with rigorous validation processes.' }]
+  }, {
+    key: 'Timeliness and Punctuality',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/timeliness-and-punctuality']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/timeliness-and-punctuality']
+      : [{ type: 'text', value: 'Data is updated quarterly, ensuring timely availability.' }]
+  }, {
+    key: 'Relevance',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/relevance']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/relevance']
+      : [{ type: 'text', value: 'Data is relevant to official statistical reporting.' }]
+  }, {
+    key: 'Accessibility and Clarity',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/accessibility-and-clarity']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/accessibility-and-clarity']
+      : [{ type: 'text', value: 'Statistics are presented in accessible formats on the Scottish Government website.' }]
+  }, {
+    key: 'Comparability and Coherence',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/comparability-and-coherence']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/comparability-and-coherence']
+      : [{ type: 'text', value: 'Data is comparable across regions and time periods.' }]
+  }, {
+    key: 'Confidentiality',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/confidentiality']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/confidentiality']
+      : [{ type: 'text', value: 'This dataset does not contain sensitive or personal information.' }]
+  }, {
+    key: 'Quality Management',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/quality-management']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/quality-management']
+      : [{ type: 'text', value: 'Data undergoes rigorous quality checks.' }]
+  }, {
+    key: 'Revisions',
+    value: parsedNote.isPseudoJson && parsedNote.content['http://statistics.gov.scot/def/statistical-quality/revisions']
+      ? parsedNote.content['http://statistics.gov.scot/def/statistical-quality/revisions']
+      : [{ type: 'text', value: 'Data revisions are documented and updated as necessary.' }]
+  }].map((item, index) => (
+    <div key={index} className="ds_accordion-item">
+      <input
+        type="checkbox"
+        className={`visually-hidden ds_accordion-item__control ${styles.accordionItemControl}`}
+        id={`quality-detail-${index}`}
+      />
+      <div className={`ds_accordion-item__header ${styles.accordionItemHeader}`}>
+        <h3 className="ds_accordion-item__title">{item.key}</h3>
+        <span className={styles.accordionIndicator}></span>
+        <label
+          className="ds_accordion-item__label"
+          htmlFor={`quality-detail-${index}`}
+        >
+          <span className="visually-hidden">Show this section</span>
+        </label>
+      </div>
+      <div className="ds_accordion-item__body">
+        <p>
+          {Array.isArray(item.value)
+            ? item.value.map((part, partIndex) =>
+                part.type === 'link' ? (
+                  <a
+                    key={partIndex}
+                    href={part.url}
+                    className="ds_link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {part.text}
+                  </a>
+                ) : (
+                  <span key={partIndex}>{part.value}</span>
+                )
+              )
+            : item.value}
+        </p>
+      </div>
+    </div>
+  ))}
+</div>
+
               </section>
               <section className={styles.section}>
                 <h2 className="ds_h3">Additional Details</h2>
