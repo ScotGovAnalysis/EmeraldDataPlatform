@@ -9,6 +9,17 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import '../styles/Design_Style.module.css';
 
+// Utility function to ensure ISO 8601 compliant datetime string with padded hours
+const formatISODate = (dateStr) => {
+  if (!dateStr) return new Date().toISOString();
+  // Check if the hour component needs padding
+  const regex = /T(\d):/;
+  if (regex.test(dateStr)) {
+    return dateStr.replace(/T(\d):/, 'T0$1:');
+  }
+  return dateStr;
+};
+
 const Datasets = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -69,7 +80,7 @@ const Datasets = () => {
       let datasets = data.result?.link?.item?.map((item) => ({
         MtrCode: item.extension?.matrix || 'unknown',
         MtrTitle: item.label || 'Untitled Dataset',
-        RlsLiveDatetimeFrom: item.updated || new Date().toISOString(),
+        RlsLiveDatetimeFrom: formatISODate(item.updated || new Date().toISOString()),
         CprValue: item.extension?.copyright?.name || 'Unknown',
         CprCode: item.extension?.copyright?.code || 'UNKNOWN',
         description: item.description || 'No description available',
@@ -107,7 +118,7 @@ const Datasets = () => {
         ? data.result.map((item) => ({
             MtrCode: item.MtrCode || 'unknown',
             MtrTitle: item.MtrTitle || 'Untitled Dataset',
-            RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
+            RlsLiveDatetimeFrom: formatISODate(item.RlsLiveDatetimeFrom || new Date().toISOString()),
             CprValue: item.CprValue || 'Unknown',
             CprCode: item.CprCode || 'UNKNOWN',
             description: item.description || 'No description available',
@@ -151,7 +162,7 @@ const Datasets = () => {
             .map((item) => ({
               MtrCode: item.MtrCode || 'unknown',
               MtrTitle: item.MtrTitle || 'Untitled Dataset',
-              RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
+              RlsLiveDatetimeFrom: formatISODate(item.RlsLiveDatetimeFrom || new Date().toISOString()),
               CprValue: item.CprValue || cprCode,
               CprCode: item.CprCode || cprCode,
             }))
@@ -179,7 +190,7 @@ const Datasets = () => {
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: 'PxStat.System.Navigation.Navigation_API.Search',
-          params: {turn: theme, LngIsoCode: 'en' },
+          params: { turn: theme, LngIsoCode: 'en' },
           id: Math.floor(Math.random() * 1000000000),
         }),
       });
@@ -189,7 +200,7 @@ const Datasets = () => {
         ? data.result.map((item) => ({
             MtrCode: item.MtrCode || 'unknown',
             MtrTitle: item.MtrTitle || 'Untitled Dataset',
-            RlsLiveDatetimeFrom: item.RlsLiveDatetimeFrom || new Date().toISOString(),
+            RlsLiveDatetimeFrom: formatISODate(item.RlsLiveDatetimeFrom || new Date().toISOString()),
             CprValue: item.CprValue || 'Unknown',
             CprCode: item.CprCode || 'UNKNOWN',
             description: item.description || 'No description available',
@@ -450,7 +461,7 @@ const Datasets = () => {
                           </label>
                         </div>
                         <div className="ds_accordion-item__body">
-                          <fieldset SexFieldset>
+                          <fieldset>
                             <legend className="visually-hidden">Filter by date</legend>
                             <div className="date-form-group">
                               <div className="date-datepicker">
@@ -609,34 +620,34 @@ const Datasets = () => {
                       <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                         {result.FrqValue && (
                           <span
-                          style={{
-                            backgroundColor: '#0475b1',           // Rich, dark blue-black
-                            color: '#ffffff',
-                            padding: '0.3rem 0.8rem',
-                            borderRadius: '0.5rem',              // More squared than before
-                            fontSize: '0.55rem',
-                            fontWeight: 500,
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            transition: 'all 0.2s ease-in-out',
-                            whiteSpace: 'nowrap'
-                          }}
+                            style={{
+                              backgroundColor: '#0475b1',
+                              color: '#ffffff',
+                              padding: '0.3rem 0.8rem',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.55rem',
+                              fontWeight: 500,
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              transition: 'all 0.2s ease-in-out',
+                              whiteSpace: 'nowrap'
+                            }}
                           >
                             {result.FrqValue}
                           </span>
                         )}
                         {result.period && (
                           <span
-                          style={{
-                            backgroundColor: '#28a197',           // Rich, dark blue-black
-                            color: '#ffffff',
-                            padding: '0.3rem 0.8rem',
-                            borderRadius: '0.5rem',              // More squared than before
-                            fontSize: '0.55rem',
-                            fontWeight: 500,
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            transition: 'all 0.2s ease-in-out',
-                            whiteSpace: 'nowrap'
-                          }}
+                            style={{
+                              backgroundColor: '#28a197',
+                              color: '#ffffff',
+                              padding: '0.3rem 0.8rem',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.55rem',
+                              fontWeight: 500,
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              transition: 'all 0.2s ease-in-out',
+                              whiteSpace: 'nowrap'
+                            }}
                           >
                             {result.period[0]} - {result.period[result.period.length - 1]}
                           </span>
@@ -646,17 +657,16 @@ const Datasets = () => {
                             <span
                               key={index}
                               style={{
-                                backgroundColor: '#38486d',           // Rich, dark blue-black
+                                backgroundColor: '#38486d',
                                 color: '#ffffff',
                                 padding: '0.3rem 0.8rem',
-                                borderRadius: '0.5rem',              // More squared than before
+                                borderRadius: '0.5rem',
                                 fontSize: '0.55rem',
                                 fontWeight: 500,
                                 border: '1px solid rgba(255, 255, 255, 0.1)',
                                 transition: 'all 0.2s ease-in-out',
                                 whiteSpace: 'nowrap'
                               }}
-                              
                             >
                               {dim.ClsValue}
                             </span>

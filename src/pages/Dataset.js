@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { Share2, Download, FileText, Table, Search, Eye, Check, ChevronDown } from 'lucide-react';
 import '@scottish-government/design-system/dist/css/design-system.min.css';
-import { format, isValid } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import '../index.css';
 import config from '../config';
 import styles from '../styles/Design_Style.module.css';
@@ -328,11 +328,31 @@ const Dataset = () => {
         return '/documents/generic.svg';
     }
   };
+const formatDate = (dateString) => {
+  if (!dateString) return 'No date available';
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return isValid(date) ? format(date, 'dd MMMM yyyy') : 'Invalid date';
-  };
+  try {
+    // Trim the date string to remove any leading or trailing whitespace
+    const trimmedDateString = dateString.trim();
+
+    // Ensure the hour part of the time has a leading zero
+    const correctedDateStr = trimmedDateString.replace(/T(\d):/, 'T0$1:');
+
+    // Log the corrected date string to ensure it's properly formatted
+    console.log('Corrected Date String:', correctedDateStr);
+
+    // Parse the corrected date string
+    const date = parseISO(correctedDateStr);
+
+    // Log the parsed date to check if it's valid
+    console.log('Parsed Date Object:', date);
+
+    return isValid(date) ? format(date, 'dd MMMM yyyy') : 'No date available';
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return 'No date available';
+  }
+};
 
   if (loading) {
     return (
@@ -374,6 +394,17 @@ const Dataset = () => {
   return (
     <div className="ds_page__middle">
       <div className="ds_wrapper">
+        <div className="ds_metadata__item">
+  <dt className="ds_metadata__key">Last Updated</dt>
+  <dd className="ds_metadata__value">
+    {(() => {
+      const dateString = dataset.updated;
+      console.log('Date String:', dateString); // Add this line for debugging
+      return formatDate(dateString);
+    })()}
+  </dd>
+</div>
+
         <main className="ds_layout ds_layout--search-results--filters">
           <div className="ds_layout__header w-full">
             <nav aria-label="Breadcrumb">
@@ -412,122 +443,122 @@ const Dataset = () => {
           </div>
 
           <div className="ds_layout__sidebar">
-            <div className="ds_metadata__panel">
-              <hr />
-              <h3 className="ds_metadata__panel-title">Metadata</h3>
-              <dl className="ds_metadata">
-                <div className="ds_metadata__item">
-                  <dt className="ds_metadata__key">Organisation</dt>
-                  <dd className="ds_metadata__value">{extension.copyright?.name || 'Not specified'}</dd>
-                </div>
-                <div className="ds_metadata__item">
-                  <dt className="ds_metadata__key">Published</dt>
-                  <dd className="ds_metadata__value">
-                    {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/issued']
-                      ? (Array.isArray(parsedNote.content['http://purl.org/dc/terms/issued'])
-                          ? formatDate(parsedNote.content['http://purl.org/dc/terms/issued'][0])
-                          : formatDate(parsedNote.content['http://purl.org/dc/terms/issued']))
-                      : formatDate(updated)}
-                  </dd>
-                </div>
-                <div className="ds_metadata__item">
-                  <dt className="ds_metadata__key">Last Updated</dt>
-                  <dd className="ds_metadata__value">
-                    {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/modified']
-                      ? (Array.isArray(parsedNote.content['http://purl.org/dc/terms/modified'])
-                          ? formatDate(parsedNote.content['http://purl.org/dc/terms/modified'][0])
-                          : formatDate(parsedNote.content['http://purl.org/dc/terms/modified']))
-                      : formatDate(updated)}
-                  </dd>
-                </div>
-                <div className="ds_metadata__item">
-                  <dt className="ds_metadata__key">Contact</dt>
-                  <dd className="ds_metadata__value">
-                    {parsedNote.isPseudoJson && parsedNote.content['http://publishmydata.com/def/dataset#contactEmail']
-                      ? (
-                          <a
-                            href={typeof parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'] === 'string'
-                              ? parsedNote.content['http://publishmydata.com/def/dataset#contactEmail']
-                              : parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'][0]?.value}
-                            className="ds_link"
-                          >
-                            {typeof parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'] === 'string'
-                              ? parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'].replace('mailto:', '')
-                              : parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'][0]?.value?.replace('mailto:', '') || 'Not specified'}
-                          </a>
-                        )
-                      : extension.contact?.email
-                        ? (
-                            <a href={`mailto:${extension.contact.email}`} className="ds_link">
-                              {extension.contact.email}
-                            </a>
-                          )
-                        : 'Not specified'}
-                  </dd>
-                </div>
-                <div className="ds_metadata__item">
-                  <dt className="ds_metadata__key">Subject</dt>
-                  <dd className="ds_metadata__value">{extension.subject?.value || 'Not specified'}</dd>
-                </div>
-                <div className="ds_metadata__item">
-                  <dt className="ds_metadata__key">Product</dt>
-                  <dd className="ds_metadata__value">{extension.product?.value || 'Not specified'}</dd>
-                </div>
-                {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/license'] && (
-                  <div className="ds_metadata__item">
-                    <dt className="ds_metadata__key">License</dt>
-                    <dd className="ds_metadata__value">
-                      <a
-                        href={typeof parsedNote.content['http://purl.org/dc/terms/license'] === 'string'
-                          ? parsedNote.content['http://purl.org/dc/terms/license']
-                          : parsedNote.content['http://purl.org/dc/terms/license'][0]?.value}
-                        className="ds_link"
-                      >
-                        {(typeof parsedNote.content['http://purl.org/dc/terms/license'] === 'string'
-                          ? parsedNote.content['http://purl.org/dc/terms/license']
-                          : parsedNote.content['http://purl.org/dc/terms/license'][0]?.value || '')
-                          .split('/')
-                          .pop()
-                          .replace('version-', 'Version ')}
-                      </a>
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              <hr />
-              <h3 className="ds_metadata__panel-title">Downloads</h3>
-              {link?.alternate?.map((item, index) => (
-                <a
-                  key={index}
-                  href={item.href}
-                  className="w-full mb-4 p-4 bg-gray-50 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-between rounded-lg shadow-sm"
-                >
-                  <div className="flex items-center">
-                    {item.type === 'text/csv' ? (
-                      <FileText size={20} className="text-blue-600 mr-3" />
-                    ) : item.type === 'application/json' ? (
-                      <FileText size={20} className="text-yellow-600 mr-3" />
-                    ) : item.type === 'application/base64' ? (
-                      <Table size={20} className="text-green-600 mr-3" />
-                    ) : (
-                      <FileText size={20} className="text-purple-600 mr-3" />
-                    )}
-                    <div className="text-left">
-                      <h4 className="font-medium text-gray-900" style={{ marginBottom: '0px' }}>
-                        {item.type === 'text/csv'
-                          ? 'CSV Data'
-                          : item.type === 'application/json'
-                          ? 'JSON File'
-                          : item.type === 'application/base64'
-                          ? 'Excel Spreadsheet'
-                          : 'PxStat File'}
-                      </h4>
-                    </div>
-                  </div>
-                  <Download size={18} className="text-gray-400" />
+<div className="ds_metadata__panel">
+  <hr />
+  <h3 className="ds_metadata__panel-title">Metadata</h3>
+  <dl className="ds_metadata">
+    <div className="ds_metadata__item">
+      <dt className="ds_metadata__key">Organisation</dt>
+      <dd className="ds_metadata__value">{' '}{extension.copyright?.name || 'Not specified'}</dd>
+    </div>
+    <div className="ds_metadata__item">
+      <dt className="ds_metadata__key">Published</dt>
+      <dd className="ds_metadata__value">
+        {' '}{formatDate(
+          parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/modified']
+            ? (Array.isArray(parsedNote.content['http://purl.org/dc/terms/modified'])
+                ? parsedNote.content['http://purl.org/dc/terms/modified'][0]?.value ||
+                  parsedNote.content['http://purl.org/dc/terms/modified'][0]
+                : parsedNote.content['http://purl.org/dc/terms/modified']?.value ||
+                  parsedNote.content['http://purl.org/dc/terms/modified'])
+            : dataset.updated
+        )}
+      </dd>
+    </div>
+    <div className="ds_metadata__item">
+      <dt className="ds_metadata__key">Last Updated</dt>
+      <dd className="ds_metadata__value">
+        {formatDate(dataset.updated)}
+      </dd>
+    </div>
+    <div className="ds_metadata__item">
+      <dt className="ds_metadata__key">Contact</dt>
+      <dd className="ds_metadata__value">
+        {' '}{parsedNote.isPseudoJson && parsedNote.content['http://publishmydata.com/def/dataset#contactEmail']
+          ? (
+              <a
+                href={typeof parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'] === 'string'
+                  ? parsedNote.content['http://publishmydata.com/def/dataset#contactEmail']
+                  : parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'][0]?.value}
+                className="ds_link"
+              >
+                {typeof parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'] === 'string'
+                  ? parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'].replace('mailto:', '')
+                  : parsedNote.content['http://publishmydata.com/def/dataset#contactEmail'][0]?.value?.replace('mailto:', '') || 'Not specified'}
+              </a>
+            )
+          : extension.contact?.email
+            ? (
+                <a href={`mailto:${extension.contact.email}`} className="ds_link">
+                  {extension.contact.email}
                 </a>
-              ))}
-            </div>
+              )
+            : 'Not specified'}
+      </dd>
+    </div>
+    <div className="ds_metadata__item">
+      <dt className="ds_metadata__key">Subject</dt>
+      <dd className="ds_metadata__value">{' '}{extension.subject?.value || 'Not specified'}</dd>
+    </div>
+    <div className="ds_metadata__item">
+      <dt className="ds_metadata__key">Product</dt>
+      <dd className="ds_metadata__value">{' '}{extension.product?.value || 'Not specified'}</dd>
+    </div>
+    {parsedNote.isPseudoJson && parsedNote.content['http://purl.org/dc/terms/license'] && (
+      <div className="ds_metadata__item">
+        <dt className="ds_metadata__key">License</dt>
+        <dd className="ds_metadata__value">
+          <a
+            href={typeof parsedNote.content['http://purl.org/dc/terms/license'] === 'string'
+              ? parsedNote.content['http://purl.org/dc/terms/license']
+              : parsedNote.content['http://purl.org/dc/terms/license'][0]?.value}
+            className="ds_link"
+          >
+            {(typeof parsedNote.content['http://purl.org/dc/terms/license'] === 'string'
+              ? parsedNote.content['http://purl.org/dc/terms/license']
+              : parsedNote.content['http://purl.org/dc/terms/license'][0]?.value || '')
+              .split('/')
+              .pop()
+              .replace('version-', 'Version ')}
+          </a>
+        </dd>
+      </div>
+    )}
+  </dl>
+  <hr />
+  <h3 className="ds_metadata__panel-title">Downloads</h3>
+  {link?.alternate?.map((item, index) => (
+    <a
+      key={index}
+      href={item.href}
+      className="w-full mb-4 p-4 bg-gray-50 hover:bg-gray-200 transition-colors duration-150 flex items-center justify-between rounded-lg shadow-sm"
+    >
+      <div className="flex items-center">
+        {item.type === 'text/csv' ? (
+          <FileText size={20} className="text-blue-600 mr-3" />
+        ) : item.type === 'application/json' ? (
+          <FileText size={20} className="text-yellow-600 mr-3" />
+        ) : item.type === 'application/base64' ? (
+          <Table size={20} className="text-green-600 mr-3" />
+        ) : (
+          <FileText size={20} className="text-purple-600 mr-3" />
+        )}
+        <div className="text-left">
+          <h4 className="font-medium text-gray-900" style={{ marginBottom: '0px' }}>
+            {item.type === 'text/csv'
+              ? 'CSV Data'
+              : item.type === 'application/json'
+              ? 'JSON File'
+              : item.type === 'application/base64'
+              ? 'Excel Spreadsheet'
+              : 'PxStat File'}
+          </h4>
+        </div>
+      </div>
+      <Download size={18} className="text-gray-400" />
+    </a>
+  ))}
+</div>
           </div>
 
           <div className="ds_layout__list">
