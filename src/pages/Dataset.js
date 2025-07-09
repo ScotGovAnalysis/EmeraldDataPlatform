@@ -458,7 +458,7 @@ const formatDate = (dateString) => {
     <div className="ds_metadata__item">
       <dt className="ds_metadata__key">Last Updated</dt>
       <dd className="ds_metadata__value">
-        {formatDate(dataset.updated)}
+        {' '}{formatDate(dataset.updated)}
       </dd>
     </div>
     <div className="ds_metadata__item">
