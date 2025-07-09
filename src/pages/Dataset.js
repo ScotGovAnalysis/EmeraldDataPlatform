@@ -394,16 +394,6 @@ const formatDate = (dateString) => {
   return (
     <div className="ds_page__middle">
       <div className="ds_wrapper">
-        <div className="ds_metadata__item">
-  <dt className="ds_metadata__key">Last Updated</dt>
-  <dd className="ds_metadata__value">
-    {(() => {
-      const dateString = dataset.updated;
-      console.log('Date String:', dateString); // Add this line for debugging
-      return formatDate(dateString);
-    })()}
-  </dd>
-</div>
 
         <main className="ds_layout ds_layout--search-results--filters">
           <div className="ds_layout__header w-full">
