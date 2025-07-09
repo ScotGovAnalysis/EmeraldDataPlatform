@@ -19,7 +19,7 @@ const Datasets = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('date');
+  const [sortBy, setSortBy] = useState('date'); // Default to 'date' (newest first)
   const [selectedOrganizations, setSelectedOrganizations] = useState([]);
   const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
   const [organizationOptions, setOrganizationOptions] = useState([]);
@@ -66,7 +66,7 @@ const Datasets = () => {
       });
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      const datasets = data.result?.link?.item?.map((item) => ({
+      let datasets = data.result?.link?.item?.map((item) => ({
         MtrCode: item.extension?.matrix || 'unknown',
         MtrTitle: item.label || 'Untitled Dataset',
         RlsLiveDatetimeFrom: item.updated || new Date().toISOString(),
@@ -74,6 +74,8 @@ const Datasets = () => {
         CprCode: item.extension?.copyright?.code || 'UNKNOWN',
         description: item.description || 'No description available',
       })) || [];
+      // Sort by date (newest first) by default
+      datasets.sort((a, b) => new Date(b.RlsLiveDatetimeFrom) - new Date(a.RlsLiveDatetimeFrom));
       setResults(datasets);
       setOrganizationOptions([...new Set(datasets
         .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
@@ -101,7 +103,7 @@ const Datasets = () => {
       });
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      const searchResults = Array.isArray(data.result)
+      let searchResults = Array.isArray(data.result)
         ? data.result.map((item) => ({
             MtrCode: item.MtrCode || 'unknown',
             MtrTitle: item.MtrTitle || 'Untitled Dataset',
@@ -114,6 +116,8 @@ const Datasets = () => {
             classification: item.classification,
           }))
         : [];
+      // Sort by date (newest first) by default
+      searchResults.sort((a, b) => new Date(b.RlsLiveDatetimeFrom) - new Date(a.RlsLiveDatetimeFrom));
       setResults(searchResults);
       setOrganizationOptions([...new Set(searchResults
         .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
@@ -141,7 +145,7 @@ const Datasets = () => {
       });
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      const datasets = Array.isArray(data.result)
+      let datasets = Array.isArray(data.result)
         ? data.result
             .filter(item => item.CprCode && item.CprCode.toLowerCase() === cprCode.toLowerCase())
             .map((item) => ({
@@ -152,6 +156,8 @@ const Datasets = () => {
               CprCode: item.CprCode || cprCode,
             }))
         : [];
+      // Sort by date (newest first) by default
+      datasets.sort((a, b) => new Date(b.RlsLiveDatetimeFrom) - new Date(a.RlsLiveDatetimeFrom));
       setResults(datasets);
       setOrganizationOptions([...new Set(datasets
         .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
@@ -173,13 +179,13 @@ const Datasets = () => {
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: 'PxStat.System.Navigation.Navigation_API.Search',
-          params: { Search: theme, LngIsoCode: 'en' },
+          params: {turn: theme, LngIsoCode: 'en' },
           id: Math.floor(Math.random() * 1000000000),
         }),
       });
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      const datasets = Array.isArray(data.result)
+      let datasets = Array.isArray(data.result)
         ? data.result.map((item) => ({
             MtrCode: item.MtrCode || 'unknown',
             MtrTitle: item.MtrTitle || 'Untitled Dataset',
@@ -189,6 +195,8 @@ const Datasets = () => {
             description: item.description || 'No description available',
           }))
         : [];
+      // Sort by date (newest first) by default
+      datasets.sort((a, b) => new Date(b.RlsLiveDatetimeFrom) - new Date(a.RlsLiveDatetimeFrom));
       setResults(datasets);
       setOrganizationOptions([...new Set(datasets
         .filter(item => !config.pxFilter || item.CprCode.toLowerCase().startsWith(config.pxFilter.toLowerCase()))
@@ -442,7 +450,7 @@ const Datasets = () => {
                           </label>
                         </div>
                         <div className="ds_accordion-item__body">
-                          <fieldset id="filter-date-range">
+                          <fieldset SexFieldset>
                             <legend className="visually-hidden">Filter by date</legend>
                             <div className="date-form-group">
                               <div className="date-datepicker">
